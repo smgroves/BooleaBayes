@@ -3,7 +3,19 @@ import networkx as nx
 import time
 import os
 
+
 def prune(G_orig, prune_sources=True, prune_sinks=True):
+    """Prune graph to remove nodes with no incoming or outgoing edges
+
+    :param G_orig: NetworkX graph to prune
+    :type G_orig: networkx.DiGraph
+    :param prune_sources: Remove nodes with no incoming edges, defaults to True
+    :type prune_sources: bool, optional
+    :param prune_sinks: Remove nodes with no outgoing edges, defaults to True
+    :type prune_sinks: bool, optional
+    :return: Pruned network
+    :rtype: networkx.DiGraph
+    """
     G = G_orig.copy()
     n = len(G.nodes())
     nold = n + 1
@@ -25,6 +37,15 @@ def prune(G_orig, prune_sources=True, prune_sinks=True):
 
 
 def prune_info(G_orig, prune_self_loops=True):
+    """Prune graph to only include edges with evidence in multiple databases
+
+    :param G_orig: NetworkX graph to prune
+    :type G_orig: networkx.DiGraph
+    :param prune_self_loops: Whether to prune self-loops in the network (edges where parent node == child node), defaults to True
+    :type prune_self_loops: bool, optional
+    :return: Pruned network
+    :rtype: networkx.DiGraph
+    """
     G = G_orig.copy()
     for tf in list(G.nodes()):
         edges = G.adj[tf]
@@ -40,14 +61,14 @@ def prune_info(G_orig, prune_self_loops=True):
 
 
 def prune_to_chea(G_orig, prune_self_loops=True):
-    """[summary]
+    """Prune graph to only include edges with evidence in ChEA databases
 
-    :param G_orig: [description]
-    :type G_orig: [type]
-    :param prune_self_loops: [description], defaults to True
+    :param G_orig: NetworkX graph to prune
+    :type G_orig: networkx.DiGraph
+    :param prune_self_loops: Whether to prune self-loops in the network (edges where parent node == child node), defaults to True
     :type prune_self_loops: bool, optional
-    :return: [description]
-    :rtype: [type]
+    :return: Pruned network
+    :rtype: networkx.DiGraph
     """
     G = G_orig.copy()
     for tf in list(G.nodes()):
@@ -121,7 +142,7 @@ def make_network(
 
     if save_unfiltered:
         outfile = open(
-            os.path.join(outdir,"network_unfiltered.csv"),
+            os.path.join(outdir, "network_unfiltered.csv"),
             "w",
         )
         for edge in G.edges():
@@ -132,7 +153,7 @@ def make_network(
         Gp = prune(G, prune_sinks=prune_sinks, prune_sources=prune_sources)
 
         outfile = open(
-            os.path.join(outdir,"network_pruned.csv",
+            os.path.join(outdir, "network_pruned.csv"),
             "w",
         )
         for edge in Gp.edges():
@@ -145,7 +166,7 @@ def make_network(
         Gpp = prune_info(Gp, prune_self_loops=prune_self_loops)
 
         outfile = open(
-            os.path.join(outdir,"network_high_evidence.csv",
+            os.path.join(outdir, "network_high_evidence.csv"),
             "w",
         )
         for edge in Gpp.edges():
@@ -153,12 +174,12 @@ def make_network(
         outfile.close()
     else:
         Gpp = Gp
-    
+
     if prune_to_chea:
         Gppp = prune_to_chea(Gpp, prune_self_loops=prune_self_loops)
 
         outfile = open(
-            "/Users/smgroves/Dropbox (VU Basic Sciences)/pycharm_workspace/NetworkTools copy/archetype_networking/RPM_thesis/network_chea.csv",
+            os.path.join(outdir, "network_chea.csv"),
             "w",
         )
         for edge in Gppp.edges():
