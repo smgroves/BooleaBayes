@@ -5,9 +5,8 @@ BooleaBayes
     :target: https://pypi.org/project/booleabayes/
     :alt: PYPi Version
 
-BooleaBayes is a suite of network inference tools to derive and simulate gene regulatory networks from transcriptomics data. To see how BooleaBayes could be applied to your own data, see our publication in PLOS Computational Biology,`Wooten, Groves et al. (2019)`_. 
+BooleaBayes is a suite of network inference tools to derive and simulate gene regulatory networks from transcriptomics data. To see how BooleaBayes could be applied to your own data, see our publication in PLOS Computational Biology, `Wooten, Groves et al. (2019) <https://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1007343>`. 
 
-.. _`Wooten, Groves et al. (2019)`:https://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1007343
 
 Installation
 ~~~~~~~~~~~~
