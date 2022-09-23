@@ -1,4 +1,4 @@
-from networktools import enrichr
+from .networktools import enrichr
 import networkx as nx
 import time
 import os

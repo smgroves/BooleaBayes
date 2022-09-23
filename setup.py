@@ -8,6 +8,30 @@ import io
 import setuptools
 from setuptools import setup
 
+install_requires = [
+    "requests",
+    "seaborn",
+    "anndata",
+    "leidenalg",
+    "matplotlib",
+    "pandas",
+    "umap-learn",
+    "numpy",
+    "scipy",
+    "cython",
+    "numba",
+    "scikit-learn",
+    "h5py",
+    "click",
+    "magic-impute",
+    "networkx",
+]
+
+doc_requires = [
+    "sphinx",
+    "sphinxcontrib-napoleon",
+]
+
 
 def read(fname):
     with io.open(
@@ -16,44 +40,28 @@ def read(fname):
         return _in.read()
 
 
-if __name__ == "__main__":
+readme = open("README.rst").read()
 
-    with open("README.md", "r") as fh:
-        long_description = fh.read()
 
-    setup(
-        name="booleabayes",
-        version="0.0.2",
-        description="A suite for network inference from transcriptomics data",
-        long_description=long_description,
-        author="Sarah Groves",
-        author_email="sarahmaddoxgroves@gmail.com",
-        url="https://github.com/smgroves/BooleaBayes",
-        install_requires=[
-            "seaborn",
-            "anndata",
-            "leidenalg",
-            "matplotlib",
-            "pandas",
-            "umap-learn",
-            "numpy",
-            "scipy",
-            "cython",
-            "numba",
-            "scikit-learn",
-            "h5py",
-            "click",
-            "magic-impute",
-            "networkx",
-        ],
-        packages=setuptools.find_packages(),
-        classifiers=[
-            "Programming Language :: Python :: 3",
-            "Operating System :: OS Independent",
-            "Intended Audience :: Developers",
-            "Intended Audience :: Science/Research",
-            "License :: OSI Approved :: MIT License",
-            "Topic :: Scientific/Engineering",
-        ],
-        python_requires=">=3.6",
-    )
+setup(
+    name="booleabayes",
+    version="0.0.3",
+    description="A suite for network inference from transcriptomics data",
+    long_description=readme,
+    long_description_content_type="text/x-rst",
+    author="Sarah Groves",
+    author_email="sarahmaddoxgroves@gmail.com",
+    url="https://github.com/smgroves/BooleaBayes",
+    install_requires=install_requires,
+    extras_require={"doc": doc_requires},
+    packages=setuptools.find_packages(),
+    classifiers=[
+        "Programming Language :: Python :: 3",
+        "Operating System :: OS Independent",
+        "Intended Audience :: Developers",
+        "Intended Audience :: Science/Research",
+        "License :: OSI Approved :: MIT License",
+        "Topic :: Scientific/Engineering",
+    ],
+    python_requires=">=3.6",
+)

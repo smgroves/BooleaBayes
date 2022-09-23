@@ -3,5 +3,5 @@ from .utils import *
 from . import rw
 from . import tl
 from . import proc
-from . import plt
+from . import plot
 from . import make_tf_network as net
