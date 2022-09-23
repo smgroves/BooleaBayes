@@ -23,6 +23,7 @@ if __name__ == "__main__":
 
     setup(
         name="booleabayes",
+        version="0.0.2",
         description="A suite for network inference from transcriptomics data",
         long_description=long_description,
         author="Sarah Groves",
@@ -35,7 +36,6 @@ if __name__ == "__main__":
             "matplotlib",
             "pandas",
             "umap-learn",
-            "graph-tool",
             "numpy",
             "scipy",
             "cython",
@@ -43,8 +43,6 @@ if __name__ == "__main__":
             "scikit-learn",
             "h5py",
             "click",
-            "cellrank",
-            "python-annoy",
             "magic-impute",
             "networkx",
         ],
