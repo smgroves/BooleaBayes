@@ -13,6 +13,7 @@ Installation
 ~~~~~~~~~~~~
 
 To install ``BooleaBayes``, please use::
+
     pip install booleabayes
 
 Dependencies
