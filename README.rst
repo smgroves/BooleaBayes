@@ -5,7 +5,7 @@ BooleaBayes
     :target: https://pypi.org/project/booleabayes/
     :alt: PYPi Version
 
-BooleaBayes is a suite of network inference tools to derive and simulate gene regulatory networks from transcriptomics data. To see how BooleaBayes could be applied to your own data, see our publication in PLOS Computational Biology, `Wooten, Groves et al. (2019) <https://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1007343>`. 
+BooleaBayes is a suite of network inference tools to derive and simulate gene regulatory networks from transcriptomics data. To see how BooleaBayes could be applied to your own data, see our publication in PLOS Computational Biology, `Wooten, Groves et al. (2019) <https://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1007343>`_. 
 
 
 Installation
@@ -18,7 +18,7 @@ To install ``BooleaBayes``, please use::
 Dependencies
 ---------------------
 
-The ``graph-tool`` python package will need to be installed. This can be installed with `Conda`, `homebrew`, etc as seen `here <https://git.skewed.de/count0/graph-tool/-/wikis/installation-instructions>`. All other dependencies will be installed with this package.
+The ``graph-tool`` python package will need to be installed. This can be installed with `Conda`, `homebrew`, etc as seen `here <https://git.skewed.de/count0/graph-tool/-/wikis/installation-instructions>`_. All other dependencies will be installed with this package.
 
 BooleaBayes Usage:
 ~~~~~~~~~~~~
