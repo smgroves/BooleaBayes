@@ -14,6 +14,22 @@ from scipy.cluster.hierarchy import linkage, dendrogram
 # Return a graph object and vertix dictionary
 def load_network(filename, remove_sources=False, remove_sinks=True, remove_selfloops=True, add_selfloops_to_sources=True,
                  header=None):
+    """ Load the transcription factor network from file
+    :param filename: file path of CSV file of network (first column = input nodes, second column = output nodes)
+    :type filename: str
+    :param remove_sources: Remove nodes without inputs, defaults to False
+    :type remove_sources: bool, optional
+    :param remove_sinks: Remove nodes without outputs, defaults to True
+    :type remove_sinks: bool, optional
+    :param remove_selfloops: Remove self loops (e.g. A --> A), defaults to True
+    :type remove_selfloops: bool, optional
+    :param add_selfloops_to_sources: Add a self-loop saying that a source node regulates itself, defaults to True
+    :type add_selfloops_to_sources: bool, optional
+    :param header: Header in `filename`, defaults to None
+    :type header: str, optional
+    :return: Return a graph_tool Graph object with a vertex dictionary
+    :rtype: networkx.DiGraph
+    """
     if not filename.endswith('.csv') or not os.path.isfile(filename):
         raise Exception('Network path must be a .csv file.  Check file name and location')
         
@@ -81,6 +97,31 @@ def prune_network(G, remove_sources=True, remove_sinks=False):
 # Return transposed dataframe
 def load_data(filename, nodes, log=False, log1p=False, sample_order=None, delimiter=",", norm="gmm", 
               index_col=0, transpose = False, fillna = None):
+    """Read data from CSV
+
+    :param filename: file path of CSV file of data (rows = genes, cols = samples)
+    :type filename: str
+    :param nodes: List of nodes in TF network
+    :type nodes: list
+    :param log: log-transform the data, defaults to False
+    :type log: bool, optional
+    :param log1p: log1p-transform the data, defaults to False
+    :type log1p: bool, optional
+    :param sample_order: If `None`, will generate a dendrogram to order to the samples. If `False`, no clustering of the samples is done. Otherwise, reorder the samples in the data to the given order, defaults to None
+    :type sample_order: list, `None`, or `False`, optional
+    :param delimiter: Delimiter of data CSV, defaults to ","
+    :type delimiter: str, optional
+    :param norm: Normalization method to use. If float, use quantile normalization, defaults to "gmm"
+    :type norm: {"gmm","minmax", float, None}, optional
+    :param index_col: Index column of data, defaults to 0
+    :type index_col: int, optional
+    :param transpose: If `True`, transpose the data, defaults to False
+    :type transpose: bool, optional
+    :param fillna: If not `None`, fill NAs in data with given value, defaults to None
+    :type fillna: scalar, dict, Series, or DataFrame, optional
+    :return: data
+    :rtype: Pandas DataFrame
+    """
     if not filename.endswith('.csv') or not os.path.isfile(filename):
         raise Exception('Data path must be a .csv file. Check file name and location.')
         
@@ -141,6 +182,21 @@ def load_data(filename, nodes, log=False, log1p=False, sample_order=None, delimi
 
 # filenames is a list of filenames, nodes gives the only genes we are reading, log is True/False, or list of [True, False, True...], delimiter is string, or list of strings
 def load_data_multiple(filenames, nodes, log=False, delimiter=",", norm="gmm"):
+    """Load multiple datasets from a list of filenames
+
+    :param filenames: List of file paths to CSVs of data
+    :type filenames: list
+    :param nodes: List of nodes in network
+    :type nodes: list
+    :param log: If `True`, log-transform, defaults to False
+    :type log: bool, optional
+    :param delimiter: Delimiter in data CSVs, defaults to ","
+    :type delimiter: str, optional
+    :param norm: Normalization method to use. If float, use quantile normalization, defaults to "gmm"
+    :type norm: {"gmm","minmax", float, None}, optional
+    :return: data
+    :rtype: Pandas DataFrame
+    """
     datasets = []
     for i, filename in enumerate(filenames):
         if type(log) == list:
@@ -164,6 +220,15 @@ def load_data_multiple(filenames, nodes, log=False, delimiter=",", norm="gmm"):
     return data
 
 def load_rules(fname="rules.txt", delimiter="|"):
+    """Load rules that have previously been generated from a txt file.
+
+    :param fname: file path to text file with rules, defaults to "rules.txt"
+    :type fname: str, optional
+    :param delimiter: Delimiter of rules text file, defaults to "|"
+    :type delimiter: str, optional
+    :return: rules, regulators_dict
+    :rtype: dict(), dict()
+    """
     rules = dict()
     regulators_dict = dict()
     with open(fname,"r") as infile:

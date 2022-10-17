@@ -45,6 +45,21 @@ def r2(x, y):
 # save dir = directory to save the split data 
 # fname = str filename to append to default save file name
 def split_train_test(data, data_t1, clusters, save_dir, fname=None):
+    """Split a dataset into testing and training dataset
+
+    :param data: Dataset or first timepoint of temporal dataset to be split into training/testing datasets
+    :type data: Pandas dataframe
+    :param data_t1: Second timepoint of temporal dataset, optional
+    :type data_t1: {Pandas dataframe, None}
+    :param clusters: Cluster assignments for each sample; see ut.get_clusters() to generate
+    :type clusters: Pandas DataFrame
+    :param save_dir: File path for saving training and testing sets
+    :type save_dir: str
+    :param fname: Suffix to add to file names for saving, defaults to None
+    :type fname: str, optional
+    :return: List of dataframes split into training and testing: `data` (training set, t0), test (testing set, t1), data_t1 (training set, t1), test_t (testing set, t1), clusters_train (cluster IDs of training set), clusters_test (cluster IDs of testing set)
+    :rtype: Pandas dataframes
+    """
     df = list(data.index)
 
     # print("Splitting into train and test datasets...")
@@ -63,10 +78,11 @@ def split_train_test(data, data_t1, clusters, save_dir, fname=None):
     test.to_csv(f'{save_dir}/test_t0_{fname}.csv')
     data.to_csv(f'{save_dir}/train_t0_{fname}.csv')
 
-    test_t1 = data_t1.loc[T['test_cellID']]
-    data_t1 = data_t1.loc[T['train_cellID']]
-    test_t1.to_csv(f'{save_dir}/test_t1_{fname}.csv')
-    data_t1.to_csv(f'{save_dir}/train_t1_{fname}.csv')
+    if data_t1 is not None:
+        test_t1 = data_t1.loc[T['test_cellID']]
+        data_t1 = data_t1.loc[T['train_cellID']]
+        test_t1.to_csv(f'{save_dir}/test_t1_{fname}.csv')
+        data_t1.to_csv(f'{save_dir}/train_t1_{fname}.csv')
 
     clusters_train = clusters.loc[T['train_cellID']]
     clusters_test = clusters.loc[T['test_cellID']]
