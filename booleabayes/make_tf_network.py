@@ -1,4 +1,4 @@
-from .networktools import enrichr
+from . import enrichr
 import networkx as nx
 import time
 import os
@@ -142,7 +142,7 @@ def make_network(
 
     if save_unfiltered:
         outfile = open(
-            os.path.join(outdir, "network_unfiltered.csv"),
+            os.path.join(outdir, f"{network_name}_unfiltered.csv"),
             "w",
         )
         for edge in G.edges():
@@ -153,7 +153,7 @@ def make_network(
         Gp = prune(G, prune_sinks=prune_sinks, prune_sources=prune_sources)
 
         outfile = open(
-            os.path.join(outdir, "network_pruned.csv"),
+            os.path.join(outdir, f"{network_name}_pruned.csv"),
             "w",
         )
         for edge in Gp.edges():
@@ -166,7 +166,7 @@ def make_network(
         Gpp = prune_info(Gp, prune_self_loops=prune_self_loops)
 
         outfile = open(
-            os.path.join(outdir, "network_high_evidence.csv"),
+            os.path.join(outdir, f"{network_name}_high_evidence.csv"),
             "w",
         )
         for edge in Gpp.edges():
@@ -179,7 +179,7 @@ def make_network(
         Gppp = prune_to_chea(Gpp, prune_self_loops=prune_self_loops)
 
         outfile = open(
-            os.path.join(outdir, "network_chea.csv"),
+            os.path.join(outdir, f"{network_name}_chea.csv"),
             "w",
         )
         for edge in Gppp.edges():
