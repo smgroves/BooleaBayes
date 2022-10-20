@@ -44,7 +44,7 @@ def r2(x, y):
 # Split a dataset into testing and training dataset
 # save dir = directory to save the split data 
 # fname = str filename to append to default save file name
-def split_train_test(data, data_t1, clusters, save_dir, fname=None):
+def split_train_test(data, data_t1, clusters, save_dir, fname=None, random_state = 1234):
     """Split a dataset into testing and training dataset
 
     :param data: Dataset or first timepoint of temporal dataset to be split into training/testing datasets
@@ -63,7 +63,7 @@ def split_train_test(data, data_t1, clusters, save_dir, fname=None):
     df = list(data.index)
 
     # print("Splitting into train and test datasets...")
-    kf = ms.StratifiedKFold(n_splits=5, random_state=1234, shuffle=True)
+    kf = ms.StratifiedKFold(n_splits=5, random_state=random_state, shuffle=True)
     train_index, test_index = next(kf.split(df, clusters.loc[df, 'class']))
 
     T = {'test_cellID': [df[i] for i in test_index], 'test_index': test_index,

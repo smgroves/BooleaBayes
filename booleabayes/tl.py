@@ -105,7 +105,7 @@ def get_rules_scvelo(
     data_t1,
     vertex_dict,
     plot=True,
-    show_plot=True,
+    show_plot=False,
     save_plot=True,
     threshold=0.1,
     save_dir="rules",
@@ -246,7 +246,7 @@ def get_rules_scvelo(
                     data,
                     save_dir=save_dir,
                     save=save_plot,
-                    show_plot=True,
+                    show_plot=show_plot,
                     hlines=hlines,
                 )
 
