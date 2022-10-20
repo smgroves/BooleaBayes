@@ -104,7 +104,7 @@ def get_rules_scvelo(
     data,
     data_t1,
     vertex_dict,
-    plot=True,
+    plot=False,
     show_plot=False,
     save_plot=True,
     threshold=0.1,
@@ -260,7 +260,14 @@ def get_rules_scvelo(
 # plot = boolean - make the resulting plot
 # threshold = float from 0.0 to 1.0, used as threshold for removing irrelevant regulators. 0 removes nothing. 1 removes all.
 def get_rules(
-    data, vertex_dict, plot=False, threshold=0.1, directory="rules", hlines=None
+    data, 
+    vertex_dict, 
+    plot=False, 
+    threshold=0.1, 
+    save_dir="rules", 
+    save_plot = True,
+    show_plot = False,
+    hlines=None
 ):
     v_names = dict()
     for vertex_name in list(vertex_dict):
@@ -391,14 +398,12 @@ def get_rules(
                     regulators,
                     heat,
                     data,
-                    directory=directory,
+                    save_dir=save_dir,
+                    save=save_plot,
+                    show_plot=show_plot,
                     hlines=hlines,
                 )
-        else:
-            fig = plt.figure()
-            plt.savefig(os.path.join(directory, "%s.pdf" % gene))
-            plt.clf()
-            plt.close()
+
     return rules, regulators_dict
 
 
