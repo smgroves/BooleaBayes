@@ -64,7 +64,7 @@ def detect_irrelevant_regulator(regulators, rule, threshold=0.1):
             dif = np.abs(rule[j] - rule[i])
             max_dif = max(dif, max_dif)
             tot_dif = tot_dif + dif
-            signed_tot_dif = signed_tot_dif + rule[i] - rule[j]
+            signed_tot_dif = signed_tot_dif + rule[j] - rule[i]
         max_difs.append(max_dif)
         tot_difs.append(tot_dif)
         signed_tot_difs.append(signed_tot_dif)
@@ -234,6 +234,7 @@ def get_rules_scvelo(
             rules[gene] = rules[gene][importance_order]
             # rules[gene] = smooth_rule(rules[gene], regulators, tot_regulator_relevance, np.max(heat,axis=0))
 
+            #strengths and signed_strengths should have child nodes as rows with columns as parent nodes
             strengths.loc[gene] = tot_regulator_relevance
             signed_strengths.loc[gene] = signed_tot_regulator_relevance
 
@@ -275,6 +276,9 @@ def get_rules(
     nodes = list(vertex_dict)
     rules = dict()
     regulators_dict = dict()
+    strengths = pd.DataFrame(index=nodes, columns=nodes)
+    signed_strengths = pd.DataFrame(index=nodes, columns=nodes)
+
     for gene in nodes:
         print(gene)
         # for each node of the network
@@ -390,6 +394,8 @@ def get_rules(
 
             rules[gene] = rules[gene][importance_order]
             # rules[gene] = smooth_rule(rules[gene], regulators, tot_regulator_relevance, np.max(heat,axis=0))
+            strengths.loc[gene] = tot_regulator_relevance
+            signed_strengths.loc[gene] = signed_tot_regulator_relevance
 
             if plot:
                 plot_rule(
@@ -404,7 +410,8 @@ def get_rules(
                     hlines=hlines,
                 )
 
-    return rules, regulators_dict
+
+    return rules, regulators_dict, strengths, signed_strengths
 
 
 def save_rules(rules, regulators_dict, fname="rules.txt", delimiter="|"):
