@@ -83,6 +83,9 @@ def split_train_test(data, data_t1, clusters, save_dir, fname=None):
         data_t1 = data_t1.loc[T['train_cellID']]
         test_t1.to_csv(f'{save_dir}/test_t1_{fname}.csv')
         data_t1.to_csv(f'{save_dir}/train_t1_{fname}.csv')
+    else:
+        test_t1 = None
+        data_t1 = None
 
     clusters_train = clusters.loc[T['train_cellID']]
     clusters_test = clusters.loc[T['test_cellID']]

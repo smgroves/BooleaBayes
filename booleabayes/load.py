@@ -95,6 +95,8 @@ def prune_network(G, remove_sources=True, remove_sinks=False):
 # If norm is one of "gmm" (data are normalized via 2-component gaussian mixture model),
 # "minmax" (data are linearly normalized from 0(min) to 1(max)) or no normalization is done
 # Return transposed dataframe
+# TODO: If specified by user, remove "low expressing nodes" from network-- ones that are missing in this data.
+
 def load_data(filename, nodes, log=False, log1p=False, sample_order=None, delimiter=",", norm="gmm", 
               index_col=0, transpose = False, fillna = None):
     """Read data from CSV
