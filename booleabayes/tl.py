@@ -494,7 +494,7 @@ def roc(
 
     return tprs, fprs, area
 
-
+#TODO: replace this function with sklearn.metrics.ROC_curve
 def calc_roc(validation, threshold):
     # P: True positive over predicted condition positive (of the ones predicted positive, how many are actually
     # positive?)
