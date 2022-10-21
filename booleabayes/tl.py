@@ -550,15 +550,13 @@ def save_auc_by_gene(area_all, nodes, save_dir):
 # returns: validation, tprs_all, fprs_all, and area_all
 def fit_validation(
     data_test,
-    data_test_t1,
     nodes,
     regulators_dict,
     rules,
-    val_type="scvelo",
+    data_test_t1 = None,
     save=False,
     save_dir=None,
     fname="",
-    phenotypes=None,
     clusters=None,
     plot=False,
     plot_clusters=False,
@@ -585,41 +583,20 @@ def fit_validation(
 
     for node in nodes:
         # print(node)
-        # call the scvelo accuracy function (the default)
-        if val_type == "scvelo":
-            validation = plot_accuracy_scvelo(
-                data_test,
-                data_test_t1,
-                node,
-                regulators_dict,
-                rules,
-                phenotypes=phenotypes,
-                clusters=clusters,
-                plot_clusters=plot_clusters,
-                save=save,
-                save_dir=save_dir,
-                fname=fname,
-                show_plot=show_plots,
-                save_df=save_df,
-                customPalette=customPalette,
-            )
-        # call the other accuracy function -- Not tested yet **
-        else:
-            validation = plot_accuracy(
-                data_test,
-                node,
-                regulators_dict,
-                rules,
-                phenotypes=phenotypes,
-                plot_clusters=plot_clusters,
-                save_dir=save_dir,
-                clusters=clusters,
-                fname=fname,
-                plot=show_plots,
-                save=save,
-                save_df=save_df,
-                customPalette=customPalette,
-            )
+        validation = plot_accuracy(
+            data = data_test,
+            node = node,
+            regulators_dict = regulators_dict,
+            rules = rules,
+            data_t1= data_test_t1,
+            plot_clusters=plot_clusters,
+            clusters=clusters,
+            save=save,
+            save_dir=save_dir,
+            show_plot=show_plots,
+            save_df=save_df,
+            customPalette=customPalette,
+        )
 
         tprs, fprs, area = roc(
             validation,

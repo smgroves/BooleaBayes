@@ -70,91 +70,91 @@ def plot_validation_avgs(
     plt.close()
 
 
-def plot_accuracy_scvelo(
-    data,
-    data_t1,
-    node,
-    regulators_dict,
-    rules,
-    phenotypes=None,
-    clusters=None,
-    plot_clusters=False,
-    save=True,
-    save_dir=None,
-    fname="",
-    show_plot=False,
-    save_df=True,
-    customPalette=sns.color_palette("Set2"),
-):
-    try:
-        os.mkdir(op.join(f"{save_dir}", f"accuracy_plots"))
-    except FileExistsError:
-        pass
-    try:
-        heat, order = parent_heatmap(data, regulators_dict, node)
-        # print("Order",order)
-        # print(f"Regulators_dict[{node}]", regulators_dict[node])
-        # importance_order = reorder_binary_decision_tree(order, regulators_dict[node])
-        rule = rules[node]
-        # dot product of weights of test sample and rule will give the predicted value for that sample for that TF
-        predicted = np.dot(heat, rule)
-        p = pd.DataFrame(predicted, columns=["predicted"], index=data.index)
-        # print(len(list(set(p.index).intersection(set(data_t1.index)))))
-        p["actual"] = data_t1[node]
+# def plot_accuracy_scvelo(
+#     data,
+#     data_t1,
+#     node,
+#     regulators_dict,
+#     rules,
+#     phenotypes=None,
+#     clusters=None,
+#     plot_clusters=False,
+#     save=True,
+#     save_dir=None,
+#     fname="",
+#     show_plot=False,
+#     save_df=True,
+#     customPalette=sns.color_palette("Set2"),
+# ):
+#     try:
+#         os.mkdir(op.join(f"{save_dir}", f"accuracy_plots"))
+#     except FileExistsError:
+#         pass
+#     try:
+#         heat, order = parent_heatmap(data, regulators_dict, node)
+#         # print("Order",order)
+#         # print(f"Regulators_dict[{node}]", regulators_dict[node])
+#         # importance_order = reorder_binary_decision_tree(order, regulators_dict[node])
+#         rule = rules[node]
+#         # dot product of weights of test sample and rule will give the predicted value for that sample for that TF
+#         predicted = np.dot(heat, rule)
+#         p = pd.DataFrame(predicted, columns=["predicted"], index=data.index)
+#         # print(len(list(set(p.index).intersection(set(data_t1.index)))))
+#         p["actual"] = data_t1[node]
 
-        if save_df == True:
-            p.to_csv(f"{save_dir}/accuracy_plots/{node}_validation.csv")
+#         if save_df == True:
+#             p.to_csv(f"{save_dir}/accuracy_plots/{node}_validation.csv")
 
-        if plot_clusters == True:
-            plt.figure()
-            predicted = pd.DataFrame(predicted, index=data.index, columns=["predicted"])
-            sns.set_palette(sns.color_palette("Set2"))
+#         if plot_clusters == True:
+#             plt.figure()
+#             predicted = pd.DataFrame(predicted, index=data.index, columns=["predicted"])
+#             sns.set_palette(sns.color_palette("Set2"))
 
-            for n, c in enumerate(sorted(list(set(clusters["class"])))):
-                clines = data.loc[clusters.loc[clusters["class"] == c].index].index
-                sns.scatterplot(
-                    x=data.loc[clines][node],
-                    y=predicted.loc[clines]["predicted"],
-                    label=c,
-                )
-            plt.xlabel("Actual Normalized Expression")
-            plt.ylabel("Predicted Expression from Rule")
-            legend_elements = []
+#             for n, c in enumerate(sorted(list(set(clusters["class"])))):
+#                 clines = data.loc[clusters.loc[clusters["class"] == c].index].index
+#                 sns.scatterplot(
+#                     x=data.loc[clines][node],
+#                     y=predicted.loc[clines]["predicted"],
+#                     label=c,
+#                 )
+#             plt.xlabel("Actual Normalized Expression")
+#             plt.ylabel("Predicted Expression from Rule")
+#             legend_elements = []
 
-            for i, j in enumerate(sorted(list(set(clusters["class"])))):
-                legend_elements.append(Patch(facecolor=customPalette[i], label=j))
+#             for i, j in enumerate(sorted(list(set(clusters["class"])))):
+#                 legend_elements.append(Patch(facecolor=customPalette[i], label=j))
 
-            plt.legend(handles=legend_elements, loc="best")
-            plt.title(str(node))
-            if save == True:
-                plt.savefig(f"{save_dir}/accuracy_plots/{node}_validation_plot.pdf")
-            elif show_plot == True:
-                plt.show()
-            plt.close()
-        else:
-            plt.figure()
-            sns.regplot(x=data[node], y=predicted)
-            plt.xlabel("Actual Normalized Expression")
-            plt.ylabel("Predicted Expression from Rule")
-            plt.title(str(node))
-            plt.xlim(0, 1)
-            plt.ylim(0, 1)
-            if ut.r2(data[node], predicted) == 0:
-                plt.title(str(node))
-            else:
-                plt.title(
-                    str(node) + "\n" + str(round(ut.r2(data[node], predicted), 2))
-                )
+#             plt.legend(handles=legend_elements, loc="best")
+#             plt.title(str(node))
+#             if save == True:
+#                 plt.savefig(f"{save_dir}/accuracy_plots/{node}_validation_plot.pdf")
+#             elif show_plot == True:
+#                 plt.show()
+#             plt.close()
+#         else:
+#             plt.figure()
+#             sns.regplot(x=data[node], y=predicted)
+#             plt.xlabel("Actual Normalized Expression")
+#             plt.ylabel("Predicted Expression from Rule")
+#             plt.title(str(node))
+#             plt.xlim(0, 1)
+#             plt.ylim(0, 1)
+#             if ut.r2(data[node], predicted) == 0:
+#                 plt.title(str(node))
+#             else:
+#                 plt.title(
+#                     str(node) + "\n" + str(round(ut.r2(data[node], predicted), 2))
+#                 )
 
-            if save == True:
-                plt.savefig(f"{save_dir}/accuracy_plots/{node}_validation_plot.pdf")
-            if show_plot == True:
-                print(node)
-                plt.show()
-            plt.close()
-        return p
-    except IndexError:
-        print(f"{node} had no parent nodes and cannot be accurately predicted.")
+#             if save == True:
+#                 plt.savefig(f"{save_dir}/accuracy_plots/{node}_validation_plot.pdf")
+#             if show_plot == True:
+#                 print(node)
+#                 plt.show()
+#             plt.close()
+#         return p
+#     except IndexError:
+#         print(f"{node} had no parent nodes and cannot be accurately predicted.")
 
 
 def parent_heatmap(data, regulators_dict, gene):
@@ -189,13 +189,12 @@ def parent_heatmap(data, regulators_dict, gene):
     return heat, regulator_order
 
 
-# TODO: distinguish difference between these functions
-## ALSO GET RID OF HARD_CODED FILE PATHS
 def plot_accuracy(
     data,
     node,
     regulators_dict,
     rules,
+    data_t1 = None,
     plot_clusters=False,
     clusters=None,
     save=True,
@@ -218,7 +217,10 @@ def plot_accuracy(
         # dot product of weights of test sample and rule will give the predicted value for that sample for that TF
         predicted = np.dot(heat, rule)
         p = pd.DataFrame(predicted, columns=["predicted"], index=data.index)
-        p["actual"] = data[node]
+        if data_t1 is not None: 
+            p["actual"] = data_t1[node] #replicates old plot_accuracy_scvelo function
+        else:
+            p["actual"] = data[node]
 
         if save_df == True:
             p.to_csv(f"{save_dir}/accuracy_plots/{node}_validation.csv")
@@ -226,7 +228,7 @@ def plot_accuracy(
         if plot_clusters == True:
             plt.figure()
             predicted = pd.DataFrame(predicted, index=data.index, columns=["predicted"])
-            sns.set_palette(sns.color_palette("Set2"))
+            sns.set_palette(customPalette)
 
             for n, c in enumerate(sorted(list(set(clusters["class"])))):
                 clines = data.loc[clusters.loc[clusters["class"] == c].index].index
