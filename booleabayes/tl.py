@@ -558,7 +558,7 @@ def fit_validation(
     save_dir=None,
     fname="",
     clusters=None,
-    plot=False,
+    plot=True,
     plot_clusters=False,
     show_plots=False,
     save_df=False,
