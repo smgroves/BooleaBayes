@@ -1,5 +1,5 @@
 from . import utils as ut
-from .plot import plot_roc, plot_rule, plot_accuracy_scvelo, plot_accuracy
+from .plot import plot_roc, plot_rule, plot_accuracy
 
 import pandas as pd
 import numpy as np
