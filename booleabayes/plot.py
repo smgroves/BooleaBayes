@@ -193,83 +193,85 @@ def parent_heatmap(data, regulators_dict, gene):
 ## ALSO GET RID OF HARD_CODED FILE PATHS
 def plot_accuracy(
     data,
-    g,
+    node,
     regulators_dict,
     rules,
-    phenotypes=None,
     plot_clusters=False,
-    dir_prefix=None,
     clusters=None,
-    save_plots=None,
-    plot=False,
     save=True,
-    save_df=False,
+    save_dir=None,
+    show_plot = False,
+    save_df=True,
     customPalette=sns.color_palette("Set2"),
+
 ):
     try:
-        os.mkdir(op.join(f"{save_dir}"))
+        os.mkdir(op.join(f"{save_dir}", 'accuracy_plots'))
     except FileExistsError:
         pass
+    try:
+        heat, order = parent_heatmap(data, regulators_dict, node)
+        # print("Order", order)
+        # print(f"Regulators_dict[{node}]", regulators_dict[node])
+        # importance_order = reorder_binary_decision_tree(order, regulators_dict[g])
+        rule = rules[node]
+        # dot product of weights of test sample and rule will give the predicted value for that sample for that TF
+        predicted = np.dot(heat, rule)
+        p = pd.DataFrame(predicted, columns=["predicted"], index=data.index)
+        p["actual"] = data[node]
 
-    h, order = parent_heatmap(data, regulators_dict, g)
-    print("Order", order)
-    print(f"Regulators_dict[{g}]", regulators_dict[g])
-    # importance_order = reorder_binary_decision_tree(order, regulators_dict[g])
-    rule = rules[g]
-    # dot product of weights of test sample and rule will give the predicted value for that sample for that TF
-    predicted = np.dot(h, rule)
-    p = pd.DataFrame(predicted, columns=["predicted"], index=data.index)
-    p["actual"] = data[g]
-    p.to_csv(f"{save_dir}/{save_plots}/{g}_validation.csv")
-    if plot == True:
+        if save_df == True:
+            p.to_csv(f"{save_dir}/accuracy_plots/{node}_validation.csv")
+
         if plot_clusters == True:
             plt.figure()
             predicted = pd.DataFrame(predicted, index=data.index, columns=["predicted"])
+            sns.set_palette(sns.color_palette("Set2"))
 
-            for i in set(clusters["class"]):
-                phen = None
-                clines = data.loc[clusters.loc[clusters["class"] == i].index].index
+            for n, c in enumerate(sorted(list(set(clusters["class"])))):
+                clines = data.loc[clusters.loc[clusters["class"] == c].index].index
                 sns.scatterplot(
-                    x=data.loc[clines][g],
+                    x=data.loc[clines][node],
                     y=predicted.loc[clines]["predicted"],
-                    label=phenotypes[int(i - 1)],
+                    label=c,
                 )
             plt.xlabel("Actual Normalized Expression")
             plt.ylabel("Predicted Expression from Rule")
             # plt.title(str(g)+"\n"+str(round(r2(data[g], predicted),2)))
             legend_elements = []
 
-            for i, j in enumerate(phenotypes):
+            # for i, j in enumerate(phenotypes):
+            for i, j in enumerate(sorted(list(set(clusters["class"])))):
                 legend_elements.append(Patch(facecolor=customPalette[i], label=j))
 
             plt.legend(handles=legend_elements, loc="best")
-            plt.title(str(g))
+            plt.title(str(node))
             if save == True:
-                plt.savefig(
-                    f"/Users/sarahmaddox/Dropbox (Vanderbilt)/Quaranta_Lab/SCLC/Network/validation/{save_plots}/{g}_{save_plots}.pdf"
-                )
-            else:
+                plt.savefig(f"{save_dir}/accuracy_plots/{node}_validation_plot.pdf")
+            if show_plot == True:
                 plt.show()
             plt.close()
         else:
             plt.figure()
-            sns.regplot(x=data[g], y=predicted)
+            sns.regplot(x=data[node], y=predicted)
             plt.xlabel("Actual Normalized Expression")
             plt.ylabel("Predicted Expression from Rule")
-            plt.title(str(g))
-
-            if ut.r2(data[g], predicted) == 0:
-                plt.title(str(g))
+            plt.title(str(node))
+            plt.xlim(0, 1)
+            plt.ylim(0, 1)
+            if ut.r2(data[node], predicted) == 0:
+                plt.title(str(node))
             else:
-                plt.title(str(g) + "\n" + str(round(ut.r2(data[g], predicted), 2)))
+                plt.title(str(node) + "\n" + str(round(ut.r2(data[node], predicted), 2)))
             if save == True:
-                plt.savefig(
-                    f"/Users/sarahmaddox/Dropbox (Vanderbilt)/Quaranta_Lab/SCLC/Network/validation/{save_plots}/{g}_{save_plots}.pdf"
-                )
-            else:
+                plt.savefig(f"{save_dir}/accuracy_plots/{node}_validation_plot.pdf")
+            if show_plot == True:
+                print(node)
                 plt.show()
             plt.close()
-    return h
+        return p
+    except IndexError:
+        print(f"{node} had no parent nodes and cannot be accurately predicted.")
 
 
 ### ------------ ATTRACTOR PLOTS ------------ ###

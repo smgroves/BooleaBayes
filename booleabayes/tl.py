@@ -1,5 +1,5 @@
 from . import utils as ut
-from .plot import plot_roc, plot_rule, plot_accuracy_scvelo
+from .plot import plot_roc, plot_rule, plot_accuracy_scvelo, plot_accuracy
 
 import pandas as pd
 import numpy as np
@@ -606,7 +606,7 @@ def fit_validation(
         # call the other accuracy function -- Not tested yet **
         else:
             validation = plot_accuracy(
-                data,
+                data_test,
                 node,
                 regulators_dict,
                 rules,
