@@ -18,7 +18,7 @@ import scipy.stats as ss
 
 
 def plot_roc(
-    fprs, tprs, area, node, save=False, save_dir=None, fname="ROC_plots", show_plot=True
+    fprs, tprs, area, node, save=False, save_dir=None,  show_plot=True
 ):
     fig = plt.figure()
     ax = plt.subplot()
@@ -32,9 +32,9 @@ def plot_roc(
     plt.xlabel("False Positive Rate")
 
     if save == True:
-        if not os.path.exists(f"{save_dir}/{fname}"):
-            os.makedirs(f"{save_dir}/{fname}")
-        plt.savefig(f"{save_dir}/{fname}/{node}_roc.pdf")
+        if not os.path.exists(f"{save_dir}/accuracy_plots"):
+            os.makedirs(f"{save_dir}/accuracy_plots")
+        plt.savefig(f"{save_dir}/accuracy_plots/{node}_roc.pdf")
 
     elif show_plot == True:
         plt.show()

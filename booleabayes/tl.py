@@ -278,8 +278,9 @@ def get_rules(
     regulators_dict = dict()
     strengths = pd.DataFrame(index=nodes, columns=nodes)
     signed_strengths = pd.DataFrame(index=nodes, columns=nodes)
-
-    for gene in nodes:
+    total_nodes = len(nodes)
+    for xx, gene in enumerate(nodes):
+        print("Fitting ", xx, "/", total_nodes "rules")
         print(gene)
         # for each node of the network
         irrelevant = []
@@ -465,7 +466,6 @@ def roc(
     validation,
     node,
     n_thresholds=10,
-    fname="ROC_plots",
     plot=False,
     show_plot=False,
     save=False,
@@ -488,7 +488,6 @@ def roc(
             node,
             save=save,
             save_dir=save_dir,
-            fname=fname,
             show_plot=show_plot,
         )
 
@@ -602,7 +601,6 @@ def fit_validation(
             validation,
             node,
             n_thresholds=n_thresholds,
-            fname=fname,
             plot=plot,
             show_plot=show_plots,
             save=save,
