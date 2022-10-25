@@ -9,16 +9,39 @@ from graph_tool import all as gt
 from graph_tool.topology import label_components
 
 def idx2binary(idx, n):
+    """Convert index (int, base 10) to a binary str
+
+    :param idx: index value of vertex (base 10)
+    :type idx: int
+    :param n: base for binary conversion
+    :type n: int
+    :return: binary version of index
+    :rtype: str
+    """
     # For debugging:
     # print('idx2binary args:',idx, n)
     binary = "{0:b}".format(idx)
     return "0" * (n - len(binary)) + binary
 
 def state2idx(state):
+    """Convert binary str to index (int, base 10)
+
+    :param state: binary version of index
+    :type state: str
+    :return: index value of vertex (base 10)
+    :rtype: int
+    """
     return int(state, 2)
 
 # Returns 0 if state is []
 def state_bool2idx(state):
+    """Convert list of boolean values (T/F) to index (int, base 10)
+
+    :param state: Boolean version of state
+    :type state: list of bool values
+    :return: index value of vertex (base 10)
+    :rtype: int
+    """
     n = len(state) - 1
     d = dict({True: 1, False: 0})
     idx = 0
@@ -133,6 +156,27 @@ def inspect_state(i, stg, vidx, rules, regulators_dict, nodes, n):
     print(sum(get_flip_probs(vidx[v], rules, regulators_dict, nodes)))
 
 def update_node(rules, regulators_dict, node, node_i, nodes, node_indices, state_bool, return_state=False):
+    """_summary_
+
+    :param rules: _description_
+    :type rules: _type_
+    :param regulators_dict: _description_
+    :type regulators_dict: _type_
+    :param node: _description_
+    :type node: _type_
+    :param node_i: _description_
+    :type node_i: _type_
+    :param nodes: _description_
+    :type nodes: _type_
+    :param node_indices: _description_
+    :type node_indices: _type_
+    :param state_bool: _description_
+    :type state_bool: _type_
+    :param return_state: _description_, defaults to False
+    :type return_state: bool, optional
+    :return: _description_
+    :rtype: _type_
+    """
     rule = rules[node]
     regulators = regulators_dict[node]
     regulator_indices = [node_indices[i] for i in regulators]
@@ -257,7 +301,7 @@ def get_avg_min_distance(binarized_data, n, min_dist=20):
                 distances.append(min_dist)
         try:
             dist_dict[k] = int(np.ceil(np.mean(distances)))
-            print(dist_dict[k])
+            print("Average minimum distance between cells in cluster: ", dist_dict[k])
         except ValueError: print("Not enough data in group to find distances.")
     return dist_dict        
      
@@ -277,6 +321,27 @@ def get_attractors(atts, c_vertex_dict, vert_idx = None):
 # Given probabilistic rules! Simulates the probabilistic graph/rules and
 # returns a state transition graph and edge_weights
 def get_partial_stg(start_states, rules, nodes, regulators_dict, radius, on_nodes = [], off_nodes = [], pthreshold=0.):
+    """Simulates the probabilistic graph/rules and returns a state transition graph and edge_weights
+
+    :param start_states: list of start state indices (int, base 10)
+    :type start_states: list of int
+    :param rules: dictionary of rules in the form {gene_name: [list of leaf probabilities]}
+    :type rules: dict
+    :param nodes: list of nodes in network
+    :type nodes: list of str
+    :param regulators_dict: _description_
+    :type regulators_dict: _type_
+    :param radius: _description_
+    :type radius: _type_
+    :param on_nodes: _description_, defaults to []
+    :type on_nodes: list, optional
+    :param off_nodes: _description_, defaults to []
+    :type off_nodes: list, optional
+    :param pthreshold: _description_, defaults to 0.
+    :type pthreshold: _type_, optional
+    :return: state transition graph and edge_weights
+    :rtype: _type_
+    """
     stg = gt.Graph()
     edge_weights = stg.new_edge_property('float')
     stg.edge_properties['weight'] = edge_weights

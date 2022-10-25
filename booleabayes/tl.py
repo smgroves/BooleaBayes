@@ -280,7 +280,7 @@ def get_rules(
     signed_strengths = pd.DataFrame(index=nodes, columns=nodes)
     total_nodes = len(nodes)
     for xx, gene in enumerate(nodes):
-        print("Fitting ", xx, "/", total_nodes "rules")
+        print("Fitting ", xx, "/", total_nodes, "rules")
         print(gene)
         # for each node of the network
         irrelevant = []
@@ -676,7 +676,7 @@ def find_attractors(
         dist_dict = ut.get_avg_min_distance(binarized_data, n)
 
     for k in binarized_data.keys():
-        # print(k)
+        print(k)
         att[k] = []
         outfile = open(
             f"{save_dir}/attractors_{k}.txt", "w+"

@@ -41,11 +41,12 @@ def plot_roc(
     plt.close()
 
 
-def plot_aucs(aucs, save=False, save_dir=None, show_plot=True):
+def plot_aucs(VAL_DIR, save=False, show_plot=True):
+    aucs = pd.read_csv(f'{VAL_DIR}/aucs.csv', header=None, index_col=0)
     plt.figure()
-    plt.hist(aucs)
+    plt.hist(aucs[1])
     if save == True:
-        plt.savefig(f"{save_dir}/aucs_plot.pdf")
+        plt.savefig(f"{VAL_DIR}/aucs_plot.pdf")
     if show_plot == True:
         plt.show()
     plt.close()
@@ -279,8 +280,8 @@ def plot_accuracy(
 ### ------------ ATTRACTOR PLOTS ------------ ###
 
 ## Work in progress
-def plot_attractors(fname, save_dir=None, sep=","):
-    att = pd.read_table(fname, sep=sep, header=0, index_col=0)
+def plot_attractors(fname, save_dir="", sep=","):
+    att = pd.read_table(f"{save_dir}/{fname}", sep=sep, header=0, index_col=0)
     att = att.transpose()
     plt.figure(figsize=(4, 8))
     sns.heatmap(
@@ -288,7 +289,7 @@ def plot_attractors(fname, save_dir=None, sep=","):
         cmap="binary",
         cbar=False,
         linecolor="w",
-        linewidths=5,
+        linewidths=1,
         square=True,
         yticklabels=True,
     )
