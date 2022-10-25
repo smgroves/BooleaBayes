@@ -1,4 +1,5 @@
 from . import utils as ut
+from .plot import plot_histograms
 
 import os
 import os.path as op
@@ -27,7 +28,7 @@ def random_walks(
     random_start=False,
     on_nodes=None,
     off_nodes=None,
-    basin=None,
+    basin=0,
 ):
     """
     Wrapper function to perform random walks.
@@ -78,7 +79,7 @@ def random_walks(
         if radius <= 0:
             raise Exception("Radius must be an integer greater than 0.")
     else:
-        raise Eception(
+        raise Exception(
             "Radius must be an integer greater than 0 or a list of integers."
         )
 
@@ -252,7 +253,7 @@ def random_walks(
                             op.join(
                                 save_dir,
                                 "perturbations/%d,%s,%s,activate,%f\n"
-                                % (start_idx, phenotype_name, expt_node, stabilized),
+                                % (start_idx, k, expt_node, stabilized),
                             )
                         )
                         expt = "%s_knockdown" % expt_node
@@ -290,7 +291,7 @@ def random_walks(
                             op.join(
                                 save_dir,
                                 "perturbations/%d,%s,%s,knockdown,%f\n"
-                                % (start_idx, phenotype_name, expt_node, stabilized),
+                                % (start_idx, k, expt_node, stabilized),
                             )
                         )
                     outfile.close()
