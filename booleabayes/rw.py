@@ -129,11 +129,11 @@ def random_walks(
                 # Print progress of random walk every 10% of the way through iters
                 prog = 0
                 for iter_ in range(iters):
-                    print("Iteration:", iter_)
-                    print("Progress:")
-                    if iter_ / 10 > prog:
+                    # print("Iteration:", iter_)
+                    # print("Progress:")
+                    if iter_ % 100 == 0:
                         prog = iter_ / 10
-                        print(prog)
+                        print("Progress: ", prog)
 
                     # 'counts': histogram of walk
                     # 'switches': count which TFs flipped
