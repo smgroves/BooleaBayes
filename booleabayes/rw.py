@@ -25,8 +25,8 @@ def random_walks(
     stability=False,
     reach_or_leave="leave",
     random_start=0,
-    on_nodes=None,
-    off_nodes=None,
+    on_nodes=[],
+    off_nodes=[],
     basin=0,
 ):
     """
@@ -100,6 +100,7 @@ def random_walks(
 
     # Run starting from steady_states
     for k in attractor_dict.keys():
+        print(k)
         steady_states = attractor_dict[k]
         # Run random walk for every radius in list or the single integer
         for radius_ in radius:
@@ -130,9 +131,10 @@ def random_walks(
                 for iter_ in range(iters):
                     # print("Iteration:", iter_)
                     # print("Progress:")
-                    if iter_ % 100 == 0:
-                        prog = iter_ / 10
-                        print("Progress: ", prog)
+                    # if iter_ % 100 == 0:
+                    #     prog = iter_ / 10
+                    #     print("Progress: ", prog)
+                    print("Random walk for", start_idx)
 
                     # 'counts': histogram of walk
                     # 'switches': count which TFs flipped
@@ -191,7 +193,8 @@ def random_walks(
                     except FileExistsError:
                         pass
                     # Run all possible single perturbations
-                    if on_nodes == None and off_nodes == None:
+                    if len(on_nodes) == 0 and len(off_nodes) == 0:
+                        print("Perturbations for ", start_idx)
                         try:
                             os.mkdir(op.join(save_dir, "perturbations/%d" % start_idx))
                         except FileExistsError:
