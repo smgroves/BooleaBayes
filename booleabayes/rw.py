@@ -184,42 +184,84 @@ def random_walks(
                 outfile.close()
                 out_len.close()
 
-            # Perform walks with perturbations
-            if perturbations:
-                try:
-                    os.mkdir(op.join(save_dir, "perturbations"))
-                except FileExistsError:
-                    pass
-                # Run all possible single perturbations
-                if on_nodes == None and off_nodes == None:
+                # Perform walks with perturbations
+                if perturbations:
                     try:
-                        os.mkdir(op.join(save_dir, "perturbations/%d" % start_idx))
+                        os.mkdir(op.join(save_dir, "perturbations"))
                     except FileExistsError:
                         pass
+                    # Run all possible single perturbations
+                    if on_nodes == None and off_nodes == None:
+                        try:
+                            os.mkdir(op.join(save_dir, "perturbations/%d" % start_idx))
+                        except FileExistsError:
+                            pass
 
-                    outfile = open(
-                        op.join(save_dir, f"perturbations/%d/results.csv" % start_idx),
-                        "w+",
-                    )
+                        outfile = open(
+                            op.join(save_dir, f"perturbations/%d/results.csv" % start_idx),
+                            "w+",
+                        )
 
-                    for expt_node in nodes:
-                        # Arrays of # steps when activating or knocking out
-                        n_steps_activate = []
-                        n_steps_knockout = []
-                        prog = 0
+                        for expt_node in nodes:
+                            # Arrays of # steps when activating or knocking out
+                            n_steps_activate = []
+                            n_steps_knockout = []
+                            prog = 0
 
-                        expt = "%s_activate" % expt_node
-                        for iter_ in range(iters):
-                            if iter_ % 100 == 0:
-                                prog = iter_ / 10
-                                print("Progress: ", prog)
-                            # To perturb more than one node, add to on_nodes or off_nodes
-                            if reach_or_leave == "leave":
+                            expt = "%s_activate" % expt_node
+                            for iter_ in range(iters):
+                                if iter_ % 100 == 0:
+                                    prog = iter_ / 10
+                                    print("Progress: ", prog)
+                                # To perturb more than one node, add to on_nodes or off_nodes
+                                if reach_or_leave == "leave":
+                                    (
+                                        walk_on,
+                                        counts_on,
+                                        switches_on,
+                                        distances_on,
+                                    ) = random_walk_until_leave_basin(
+                                        start_idx,
+                                        rules,
+                                        regulators_dict,
+                                        nodes,
+                                        radius,
+                                        max_steps=max_steps,
+                                        on_nodes=[
+                                            expt_node,
+                                        ],
+                                        off_nodes=[],
+                                    )
+                                # elif reach_or_leave == "reach":
+
+                                n_steps_activate.append(len(distances_on))
+
+                            # mean of non-perturbed vs perturbed: loc_0 and loc_1
+                            # histogram plots: inverse gaussian?
+                            loc_0, loc_1, stabilized = plot_histograms(
+                                n_steps_to_leave_0,
+                                n_steps_activate,
+                                expt,
+                                bins=60,
+                                fname=op.join(
+                                    save_dir, "perturbations/%d/%s.pdf" % (start_idx, expt)
+                                ),
+                            )
+
+                            outfile.write(
+                                op.join(
+                                    save_dir,
+                                    "perturbations/%d,%s,%s,activate,%f\n"
+                                    % (start_idx, k, expt_node, stabilized),
+                                )
+                            )
+                            expt = "%s_knockdown" % expt_node
+                            for iter_ in range(iters):
                                 (
-                                    walk_on,
-                                    counts_on,
-                                    switches_on,
-                                    distances_on,
+                                    walk_off,
+                                    counts_off,
+                                    switches_off,
+                                    distances_off,
                                 ) = random_walk_until_leave_basin(
                                     start_idx,
                                     rules,
@@ -227,73 +269,31 @@ def random_walks(
                                     nodes,
                                     radius,
                                     max_steps=max_steps,
-                                    on_nodes=[
+                                    on_nodes=[],
+                                    off_nodes=[
                                         expt_node,
                                     ],
-                                    off_nodes=[],
                                 )
-                            # elif reach_or_leave == "reach":
 
-                            n_steps_activate.append(len(distances_on))
+                                n_steps_knockout.append(len(distances_off))
 
-                        # mean of non-perturbed vs perturbed: loc_0 and loc_1
-                        # histogram plots: inverse gaussian?
-                        loc_0, loc_1, stabilized = plot_histograms(
-                            n_steps_to_leave_0,
-                            n_steps_activate,
-                            expt,
-                            bins=60,
-                            fname=op.join(
-                                save_dir, "perturbations/%d/%s.pdf" % (start_idx, expt)
-                            ),
-                        )
-
-                        outfile.write(
-                            op.join(
-                                save_dir,
-                                "perturbations/%d,%s,%s,activate,%f\n"
-                                % (start_idx, k, expt_node, stabilized),
+                            loc_0, loc_1, stabilized = plot_histograms(
+                                n_steps_to_leave_0,
+                                n_steps_knockout,
+                                expt,
+                                bins=60,
+                                fname=op.join(
+                                    save_dir, "perturbations/%d/%s.pdf" % (start_idx, expt)
+                                ),
                             )
-                        )
-                        expt = "%s_knockdown" % expt_node
-                        for iter_ in range(iters):
-                            (
-                                walk_off,
-                                counts_off,
-                                switches_off,
-                                distances_off,
-                            ) = random_walk_until_leave_basin(
-                                start_idx,
-                                rules,
-                                regulators_dict,
-                                nodes,
-                                radius,
-                                max_steps=max_steps,
-                                on_nodes=[],
-                                off_nodes=[
-                                    expt_node,
-                                ],
+                            outfile.write(
+                                op.join(
+                                    save_dir,
+                                    "perturbations/%d,%s,%s,knockdown,%f\n"
+                                    % (start_idx, k, expt_node, stabilized),
+                                )
                             )
-
-                            n_steps_knockout.append(len(distances_off))
-
-                        loc_0, loc_1, stabilized = plot_histograms(
-                            n_steps_to_leave_0,
-                            n_steps_knockout,
-                            expt,
-                            bins=60,
-                            fname=op.join(
-                                save_dir, "perturbations/%d/%s.pdf" % (start_idx, expt)
-                            ),
-                        )
-                        outfile.write(
-                            op.join(
-                                save_dir,
-                                "perturbations/%d,%s,%s,knockdown,%f\n"
-                                % (start_idx, k, expt_node, stabilized),
-                            )
-                        )
-                    outfile.close()
+                        outfile.close()
     
     if random_start > 0:
         try:
