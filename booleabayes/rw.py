@@ -10,9 +10,8 @@ import numpy as np
 from graph_tool import all as gt
 from graph_tool.topology import label_components
 from collections import Counter
+import random
 
-
-# TODO: the random_start walk if arg set to true
 def random_walks(
     attractor_dict,
     rules,
@@ -25,7 +24,7 @@ def random_walks(
     max_steps=500,
     stability=False,
     reach_or_leave="leave",
-    random_start=False,
+    random_start=0,
     on_nodes=None,
     off_nodes=None,
     basin=0,
@@ -57,8 +56,8 @@ def random_walks(
         Whether to perform stability testing with multiple radii or not
     reach_or_leave : string
         Define what type of random walk to perform
-    random_start: bool
-        Whether to perform walks with a random list of start states
+    random_start: int
+        Whether to perform walks with a random list of start states. If >0, run that many random starts
     on_nodes : list
         Define ON nodes of a perturbation
     off_nodes : list
@@ -211,9 +210,9 @@ def random_walks(
 
                         expt = "%s_activate" % expt_node
                         for iter_ in range(iters):
-                            if iter_ / 10 > prog:
+                            if iter_ % 100 == 0:
                                 prog = iter_ / 10
-                                print(prog)
+                                print("Progress: ", prog)
                             # To perturb more than one node, add to on_nodes or off_nodes
                             if reach_or_leave == "leave":
                                 (
@@ -227,7 +226,7 @@ def random_walks(
                                     regulators_dict,
                                     nodes,
                                     radius,
-                                    max_steps=500,
+                                    max_steps=max_steps,
                                     on_nodes=[
                                         expt_node,
                                     ],
@@ -269,7 +268,7 @@ def random_walks(
                                 regulators_dict,
                                 nodes,
                                 radius,
-                                max_steps=500,
+                                max_steps=max_steps,
                                 on_nodes=[],
                                 off_nodes=[
                                     expt_node,
@@ -295,6 +294,99 @@ def random_walks(
                             )
                         )
                     outfile.close()
+    
+    if random_start > 0:
+        try:
+            os.mkdir(op.join(save_dir, '/walks/random'))
+        except FileExistsError:
+            pass
+        random_list = []
+        for i in range(random_start):
+            rand_state = random.choices([0,1], k=len(nodes))
+            rand_idx = ut.state_bool2idx(rand_state)
+            random_list.append(rand_idx)
+        for radius_ in radius:
+            for start_idx in random_list:
+                switch_counts_0 = dict()
+                for node in nodes:
+                    switch_counts_0[node] = 0
+                n_steps_to_leave_0 = []
+                try:
+                    os.mkdir(op.join(save_dir, "walks/random/%d" % start_idx))
+                except FileExistsError:
+                    pass
+
+                outfile = open(
+                    op.join(
+                        save_dir, f"walks/random/%d/results_radius_{radius_}.csv" % start_idx
+                    ),
+                    "w+",
+                )
+                out_len = open(
+                    op.join(save_dir, f"walks/random/%d/len_walks_{radius_}.csv" % start_idx),
+                    "w+",
+                )
+
+                # Perform walks without perturbations first
+                # Print progress of random walk every 10% of the way through iters
+                prog = 0
+                for iter_ in range(iters):
+                    # print("Iteration:", iter_)
+                    # print("Progress:")
+                    if iter_ % 100 == 0:
+                        prog = iter_ / 10
+                        print("Progress: ", prog)
+
+                    # 'counts': histogram of walk
+                    # 'switches': count which TFs flipped
+                    # 'distance': starting state to current state; walk until take max steps or leave basin
+                    if reach_or_leave == "leave":
+                        (
+                            walk,
+                            counts,
+                            switches,
+                            distances,
+                        ) = random_walk_until_leave_basin(
+                            start_idx,
+                            rules,
+                            regulators_dict,
+                            nodes,
+                            radius_,
+                            max_steps=max_steps,
+                            on_nodes=on_nodes,
+                            off_nodes=off_nodes,
+                        )
+                    elif reach_or_leave == "reach":
+                        (
+                            walk,
+                            counts,
+                            switches,
+                            distances,
+                        ) = random_walk_until_reach_basin(
+                            start_idx,
+                            rules,
+                            regulators_dict,
+                            nodes,
+                            radius=radius_,
+                            max_steps=max_steps,
+                            on_nodes=on_nodes,
+                            off_nodes=off_nodes,
+                            basin=basin,
+                        )
+                    else:
+                        raise Exception(
+                            "Value for `reach_or_leave` must be string 'reach' or 'leave'."
+                        )
+
+                    n_steps_to_leave_0.append(len(distances))
+                    for node in switches:
+                        if node is not None:
+                            switch_counts_0[node] += 1
+                    outfile.write(f"{walk}\n")
+                    out_len.write(f"{len(walk)}\n")
+                outfile.close()
+                out_len.close()
+
 
 
 def simple_random_walk(stg, edge_weights, start_idx, steps):
