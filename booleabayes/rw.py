@@ -128,13 +128,14 @@ def random_walks(
                 # Perform walks without perturbations first
                 # Print progress of random walk every 10% of the way through iters
                 prog = 0
+                print("Random walks for", start_idx)
+
                 for iter_ in range(iters):
                     # print("Iteration:", iter_)
                     # print("Progress:")
                     # if iter_ % 100 == 0:
                     #     prog = iter_ / 10
                     #     print("Progress: ", prog)
-                    print("Random walk for", start_idx)
 
                     # 'counts': histogram of walk
                     # 'switches': count which TFs flipped
@@ -228,7 +229,7 @@ def random_walks(
                                         rules,
                                         regulators_dict,
                                         nodes,
-                                        radius,
+                                        radius_,
                                         max_steps=max_steps,
                                         on_nodes=[
                                             expt_node,
@@ -270,7 +271,7 @@ def random_walks(
                                     rules,
                                     regulators_dict,
                                     nodes,
-                                    radius,
+                                    radius_,
                                     max_steps=max_steps,
                                     on_nodes=[],
                                     off_nodes=[
