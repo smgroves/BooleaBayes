@@ -28,6 +28,8 @@ def random_walks(
     on_nodes=[],
     off_nodes=[],
     basin=0,
+    overwrite_walks = True,
+    overwrite_perturbations = True
 ):
     """
     Wrapper function to perform random walks.
@@ -64,6 +66,10 @@ def random_walks(
         Define OFF nodes of a perturbation
     basin : int
         Define a basin for random_walk_until_reach_basin
+    overwrite_walks: bool, default True
+        If False and walks/{start_idx} already exists, do not overwrite the results. Instead move on to the next start_idx. Note that if this is set to False and walks/{start_idx} already exists, the code skips all random walks for this start_idx (including any perturbations and stability testing)
+    overwrite_perturbations: bool, default = True
+        If False and perturbations/{start_idx} already exists, do not overwrite the results. Instead move on to the next start_idx.
 
     Returns
     -------
@@ -111,8 +117,11 @@ def random_walks(
                 n_steps_to_leave_0 = []
                 try:
                     os.mkdir(op.join(save_dir, "walks/%d" % start_idx))
-                except FileExistsError:
-                    pass
+                except FileExistsError: #if the walks were already done and overwrite_walks = False, skip this start_idx
+                    if overwrite_walks: 
+                        pass
+                    else:
+                        continue
 
                 outfile = open(
                     op.join(
@@ -192,13 +201,17 @@ def random_walks(
                     try:
                         os.mkdir(op.join(save_dir, "perturbations"))
                     except FileExistsError:
-                        pass
+                        if overwrite_perturbations: 
+                            pass
+                        else:
+                            continue
                     # Run all possible single perturbations
                     if len(on_nodes) == 0 and len(off_nodes) == 0:
                         print("Perturbations for ", start_idx)
                         try:
                             os.mkdir(op.join(save_dir, "perturbations/%d" % start_idx))
                         except FileExistsError:
+                            
                             pass
 
                         outfile = open(
