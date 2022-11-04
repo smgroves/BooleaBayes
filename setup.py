@@ -54,7 +54,7 @@ setup(
     url="https://github.com/smgroves/BooleaBayes",
     install_requires=install_requires,
     extras_require={"doc": doc_requires},
-    packages=setuptools.find_packages(),
+    packages=setuptools.find_packages(exclude = "tests"),
     classifiers=[
         "Programming Language :: Python :: 3",
         "Operating System :: OS Independent",
