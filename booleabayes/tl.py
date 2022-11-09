@@ -1,5 +1,5 @@
 from . import utils as ut
-from .plot import plot_roc, plot_rule, plot_accuracy
+from .plot import plot_roc, plot_rule, plot_accuracy, plot_destabilization_scores,plot_perturb_gene_dictionary
 
 import pandas as pd
 import numpy as np
@@ -20,6 +20,7 @@ import matplotlib.pyplot as plt
 import sklearn.model_selection as ms
 from scipy.stats import mannwhitneyu
 from statsmodels.stats.multitest import multipletests
+import json
 
 
 ### ------------ RULE FITTING ----------- ###
@@ -886,3 +887,31 @@ def find_avg_states(binarized_data, nodes, save_dir):
     file = open(f"{save_dir}/average_states.txt", "w+")
     ut.get_avg_state_index(nodes, average_states, file, save_dir=save_dir)
     return average_states
+
+
+### ------------ PERTURBATIONS SUMMARY ------------ ###
+
+def perturbations_summary(attractor_dict,perturbations_dir, show = False, save = True, plot_by_attractor = False, save_dir = "clustered_perturb_plots", save_full = True,
+    significance = 'both', fname = "", ncols = 5, mean_threshold = -0.3):
+    if plot_by_attractor:
+        plot_destabilization_scores(attractor_dict, perturbations_dir, show = False, save = True, clustered = False)
+
+    print("Plotting perturbation summary plots...")
+    plot_destabilization_scores(attractor_dict, perturbations_dir, show = show, save = save, save_dir=save_dir)
+
+    print("Testing significance of TF perturbations...")
+    perturb_dict, full = ut.get_perturbation_dict(attractor_dict, perturbations_dir, significance = significance, save_full=False, mean_threshold=mean_threshold)
+    perturb_gene_dict = ut.reverse_perturb_dictionary(perturb_dict)
+    if save_full:
+        ut.write_dict_of_dicts(perturb_gene_dict, 
+            file = f"{perturbations_dir}/{save_dir}/perturbation_TF_dictionary{fname}.txt")
+
+
+    full_sig = ut.get_ci_sig(full, group_cols=['cluster','gene','perturb'])
+
+    if save_full:
+        full_sig.to_csv(f"{perturbations_dir}/{save_dir}/perturbation_stats.csv")
+    
+    plot_perturb_gene_dictionary(perturb_gene_dict, full,perturbations_dir,show = False, save = True, ncols = ncols, fname = fname)
+
+    return perturb_gene_dict, full, full_sig

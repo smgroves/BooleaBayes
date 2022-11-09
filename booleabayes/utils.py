@@ -7,6 +7,9 @@ import pickle
 from scipy import stats
 from graph_tool import all as gt
 from graph_tool.topology import label_components
+import math
+import json
+
 
 def idx2binary(idx, n):
     """Convert index (int, base 10) to a binary str
@@ -458,3 +461,128 @@ def get_partial_stg(start_states, rules, nodes, regulators_dict, radius, on_node
                  
     return stg, edge_weights
 
+#### auxillary functions for getting perturbation summary stats and plots
+
+
+def get_ci_sig(results, group_cols = ['gene'], score_col = 'score', mean_threshold = -0.3):
+    stats = results.groupby(group_cols)[score_col].agg(['mean', 'count', 'std'])
+    ci95_hi = []
+    ci95_lo = []
+    sig = []
+    mean_sig = []
+    for i in stats.index:
+        m, c, s = stats.loc[i]
+        ci95_hi.append(m + 1.96*s/math.sqrt(c))
+        ci95_lo.append(m - 1.96*s/math.sqrt(c))
+        if m < mean_threshold:
+            mean_sig.append("yes")
+        else:
+            mean_sig.append('no')
+        if m + 1.96*s/math.sqrt(c) < 0:
+            sig.append('yes')
+        else:
+            sig.append("no")
+
+    stats['ci95_hi'] = ci95_hi
+    stats['ci95_lo'] = ci95_lo
+    stats['ci_sig'] = sig
+    stats['mean_sig'] = mean_sig
+    return stats
+
+def get_perturbation_dict(attractor_dict, perturbations_dir, significance = 'both', save_full = False, save_dir = "clustered_perturb_plots",
+                          mean_threshold = -0.3):
+    perturb_dict = {}
+    full_results = pd.DataFrame(columns = ['cluster','attr','gene','perturb','score'])
+
+    for k in attractor_dict.keys():
+        print(k)
+        results = pd.DataFrame(columns = ['attr','gene','perturb','score'])
+        for attr in attractor_dict[k]:
+            tmp = pd.read_csv(f"{perturbations_dir}/{attr}/results.csv", header = None, index_col = None)
+            tmp.columns = ["attractor_dir","cluster","gene","perturb","score"]
+            for i,r in tmp.iterrows():
+                results = results.append(pd.Series([attr, r['gene'],r['perturb'],r['score']],
+                                                   index = ['attr','gene','perturb','score']), ignore_index=True)
+                full_results = full_results.append(pd.Series([k, attr, r['gene'],r['perturb'],r['score']],
+                                                   index = ['cluster','attr','gene','perturb','score']), ignore_index=True)
+        results_act = results.loc[results["perturb"] == 'activate']
+        stats_act = get_ci_sig(results_act, mean_threshold=mean_threshold)
+
+        results_kd = results.loc[results["perturb"] == 'knockdown']
+        stats_kd = get_ci_sig(results_kd, mean_threshold=mean_threshold)
+
+        if significance == 'ci':
+            #activation is significantly destabilizing = destabilizer
+            act_l = []
+            for i,r in stats_act.iterrows():
+                if r['ci_sig'] == "yes":
+                    act_l.append(i)
+
+            #knockdown is significantly destabilizing = destabilizer
+            kd_l = []
+            for i,r in stats_kd.iterrows():
+                if r['ci_sig'] == "yes":
+                    kd_l.append(i)
+        elif significance == 'mean':
+            act_l = []
+            for i,r in stats_act.iterrows():
+                if r['mean_sig'] == "yes":
+                    act_l.append(i)
+
+            kd_l = []
+            for i,r in stats_kd.iterrows():
+                if r['mean_sig'] == "yes":
+                    kd_l.append(i)
+        elif significance == 'both':
+            #activation is significantly destabilizing = destabilizer
+            act_l = []
+            for i,r in stats_act.iterrows():
+                if r['ci_sig'] == "yes":
+                    if r['mean_sig'] == "yes":
+                        act_l.append(i)
+                elif len(attractor_dict[k]) == 1: #ci of single attractor DNE
+                    if r['mean_sig'] == "yes":
+                        act_l.append(i)
+            #knockdown is significantly destabilizing = destabilizer
+            kd_l = []
+            for i,r in stats_kd.iterrows():
+                if r['ci_sig'] == "yes":
+                    if r['mean_sig'] == "yes":
+                        kd_l.append(i)
+                elif len(attractor_dict[k]) == 1: #ci of single attractor DNE
+                    if r['mean_sig'] == "yes":
+                        kd_l.append(i)
+        else:
+            print("significance must be one of {'ci','mean', 'both'}")
+        perturb_dict[k] = {"Regulators":kd_l, "Destabilizers":act_l}
+
+    if save_full:
+        try:
+            os.mkdir(f"{perturbations_dir}/{save_dir}")
+        except FileExistsError:
+            pass
+        full_results.to_csv(f"{perturbations_dir}/{save_dir}/perturbations.csv")
+
+    return perturb_dict, full_results
+
+def reverse_dictionary(dictionary):
+    return  {v: k for k, v in dictionary.items()}
+
+def reverse_perturb_dictionary(dictionary):
+    reverse_dict = {}
+    for k,v in dictionary.items():
+        # v is a dictionary too
+        for reg_type, genes in v.items():
+            for gene in genes:
+                if gene not in reverse_dict.keys():
+                    reverse_dict[gene] = {"Regulators":[], "Destabilizers":[]}
+                reverse_dict[gene][reg_type].append(k)
+    return  reverse_dict
+
+
+def write_dict_of_dicts(dictionary, file):
+    with open(file, 'w') as convert_file:
+        for k in sorted(dictionary.keys()):
+            convert_file.write(f"{k}:")
+            convert_file.write(json.dumps(dictionary[k]))
+            convert_file.write("\n")
