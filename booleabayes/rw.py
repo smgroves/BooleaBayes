@@ -314,7 +314,6 @@ def random_walks(
                         outfile.close()
     
     if random_start > 0:
-        print(save_dir)
         try:
             os.mkdir(f"{save_dir}/walks/random")
         except FileExistsError:
@@ -352,8 +351,8 @@ def random_walks(
                 for iter_ in range(iters):
                     # print("Iteration:", iter_)
                     # print("Progress:")
-                    if iter_ % 100 == 0:
-                        prog = iter_ / 10
+                    if iter_/iters*100 % 10 == 0:
+                        prog = iter_/iters*100
                         print("Progress: ", prog)
 
                     # 'counts': histogram of walk

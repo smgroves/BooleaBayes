@@ -724,21 +724,24 @@ def plot_stability(attractor_dict, walks_dir, palette = sns.color_palette("tab20
             for i,r in norm.iterrows():
                 norm_df.loc[norm_df['radius']==i,'mean'] = norm_df.loc[norm_df['radius']==i,'mean']/r["mean"]
             norm_df = norm_df.sort_values(by = "cluster")
+            plt.figure()
             sns.lineplot(x = 'radius',y = 'mean',err_style=err_style,hue = 'cluster', palette=colormap,
                          data = norm_df, markers = True)
             plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0, title = "Attractor Subtypes")
 
             plt.xticks(list(np.unique(norm_df['radius'])))
             plt.xlabel("Radius of Basin")
-            plt.ylabel("Scaled mean number of steps to leave basin (Fold-change from control mean)")
+            plt.ylabel(f"Scaled Mean number of steps to leave basin \n (Fold-change from control mean)")
             plt.title("Scaled Stability of Attractors by Subtype")
             plt.tight_layout()
             if show:
                 plt.show()
             if save:
                 plt.savefig(f"{walks_dir}/scaled_stability_plot.pdf")
+                plt.close()
 
     df = df.sort_values(by = "cluster")
+    plt.figure()
     sns.lineplot(x = 'radius',y = 'mean',err_style=err_style,hue = 'cluster', palette=colormap,
                       data = df, markers = True)
     plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0, title = "Attractor Subtypes")
@@ -752,6 +755,8 @@ def plot_stability(attractor_dict, walks_dir, palette = sns.color_palette("tab20
         plt.show()
     if save:
         plt.savefig(f"{walks_dir}/stability_plot.pdf")
+        plt.close()
+    return df
 
 # att_list = list of attractor states
 # phenotypes = list of phenotypes
