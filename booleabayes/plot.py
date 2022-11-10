@@ -910,7 +910,7 @@ def plot_stability(attractor_dict, walks_dir, palette = sns.color_palette("tab20
             for i,r in norm.iterrows():
                 norm_df.loc[norm_df['radius']==i,'mean'] = norm_df.loc[norm_df['radius']==i,'mean']/r["mean"]
             norm_df = norm_df.sort_values(by = "cluster")
-            sns.lineplot(x = 'radius',y = 'mean',err_style=err_style',hue = 'cluster', palette=colormap,
+            sns.lineplot(x = 'radius',y = 'mean',err_style=err_style,hue = 'cluster', palette=colormap,
                          data = norm_df, markers = True)
             plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0, title = "Attractor Subtypes")
 
@@ -925,7 +925,7 @@ def plot_stability(attractor_dict, walks_dir, palette = sns.color_palette("tab20
                 plt.savefig(f"{walks_dir}/scaled_stability_plot.pdf")
 
     df = df.sort_values(by = "cluster")
-    sns.lineplot(x = 'radius',y = 'mean',err_style=err_style',hue = 'cluster', palette=colormap,
+    sns.lineplot(x = 'radius',y = 'mean',err_style=err_style,hue = 'cluster', palette=colormap,
                       data = df, markers = True)
     plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0, title = "Attractor Subtypes")
 
