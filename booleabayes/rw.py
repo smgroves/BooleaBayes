@@ -110,6 +110,7 @@ def random_walks(
         steady_states = attractor_dict[k]
         # Run random walk for every radius in list or the single integer
         for radius_ in radius:
+            print("Radius: ", radius_)
             for start_idx in steady_states:
                 switch_counts_0 = dict()
                 for node in nodes:
@@ -137,7 +138,7 @@ def random_walks(
                 # Perform walks without perturbations first
                 # Print progress of random walk every 10% of the way through iters
                 prog = 0
-                print("Random walks for", start_idx)
+                print("...Random walks for", start_idx)
 
                 for iter_ in range(iters):
                     # print("Iteration:", iter_)

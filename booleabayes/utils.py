@@ -586,3 +586,17 @@ def write_dict_of_dicts(dictionary, file):
             convert_file.write(f"{k}:")
             convert_file.write(json.dumps(dictionary[k]))
             convert_file.write("\n")
+
+def get_attractor_dict(ATTRACTOR_DIR, filtered = True):
+    attractor_dict = {}
+    if filtered:
+        attr = pd.read_csv(f'{ATTRACTOR_DIR}/attractors_filtered.txt', sep = ',', header = 0, index_col = 0)
+    else:
+        attr = pd.read_csv(f'{ATTRACTOR_DIR}/attractors_unfiltered.txt', sep = ',', header = 0, index_col = 0)
+    for i,r in attr.iterrows():
+        attractor_dict[i] = []
+
+    for i,r in attr.iterrows():
+        attractor_dict[i].append(state_bool2idx(list(r)))
+    
+    return attractor_dict

@@ -12,7 +12,7 @@ import matplotlib.gridspec as gridspec
 from scipy.stats import skewnorm, invgauss
 import seaborn as sns
 import scipy.stats as ss
-
+import glob
 
 ### ------------ ACCURACY PLOTS ------------ ###
 
@@ -677,276 +677,78 @@ def plot_perturb_gene_dictionary(p_dict, full,perturbations_dir,show = False, sa
     if show:
         plt.show()
 
-# Need more info on the code to make sure it's plotting correctly.
-def stability():
-    ## Does user specify these attractor lists?
-    Y_attractors = [14897871719]
-    A2_attractors = [32136863904]
-    N_attractors = [17045356415, 15703179135]
-    A_attractors = [21349304528]
-    uncl_attractors = [1446933]
+def plot_stability(attractor_dict, walks_dir, palette = sns.color_palette("tab20"), rescaled = True,
+                   show = False, save = True):
 
     df = pd.DataFrame(
-        columns=["radius", "folder", "median", "ci", "color", "phenotype"]
+        columns=["cluster", "attr","radius", "mean", "median", "std"]
     )
-    folders = listdir(op.join(di, "walks/"))
-    # print(folders)
-    colors = {
-        "A": "g",
-        "A2": "r",
-        "N": "b",
-        "Y": "orange",
-        "uncl": "darkgray",
-        "Null": "lightgrey",
-    }
 
-    ax = plt.subplot()
-    NE_ave_change = [0] * 7
-    NON_NE_ave_change = [0] * 7
-    NEv2_ave_change = [0] * 7
-    NEv1_ave_change = [0] * 7
-    uncl_ave_change = [0] * 7
+    colormap = {i:c for i,c in zip(sorted(attractor_dict.keys()), palette)}
+    # folders = glob.glob(f"{walks_dir}/[0-9]*")
 
-    countNEv2 = 0
-    countNEv1 = 0
-    countNE = 0
-    countNONNE = 0
-    countUNCL = 0
-    # print(folders)
-    for i, folder in enumerate(folders):
-        earthmove = []
-        if folder == ".DS_Store":
-            continue
-        phenotype_name = "Null"
-        if int(folder) in A_attractors:
-            phenotype_name = "A"
-        elif int(folder) in A2_attractors:
-            phenotype_name = "A2"
-        elif int(folder) in N_attractors:
-            phenotype_name = "N"
-        elif int(folder) in Y_attractors:
-            phenotype_name = "Y"
-        elif int(folder) in uncl_attractors:
-            phenotype_name = "uncl"
+    for k in sorted(attractor_dict.keys()):
+        print(k)
+        for attr in attractor_dict[k]:
+            folders = glob.glob(f"{walks_dir}/{attr}/len_walks_[0-9]*")
+            for f in folders:
+                radius = int(f.split("_")[-1].split(".")[0])
+                try:
+                    lengths = pd.read_csv(f, header = None, index_col = None)
+                except pd.errors.EmptyDataError: continue
+                df = df.append(pd.Series([k,attr, radius, np.mean(lengths[0]), np.median(lengths[0]), np.std(lengths[0])],
+                                         index=["cluster", "attr","radius","mean", "median", "std"]),
+                                             ignore_index=True)
 
-        medians = []
-        datas = []
-        cis = []
-        # plt.figure()
-        if phenotype_name != "Null":
-            for radius in [1, 2, 3, 4, 5, 6, 7, 8]:
-                lengths = pd.read_csv(
-                    op.join(di, f"walks/{folder}/len_walks_{radius}.csv"), header=None
-                )
-                # sns.distplot(lengths[0], bins = 100,  label = f'Basin radius = {radius}',color=colors[radius])
-                # ax = plt.subplot()
-                # ax.boxplot(lengths[0], positions=[radius])
-                medians.append(np.median(lengths[0]))
-                cis.append(np.std(lengths[0]))
-                df2 = pd.DataFrame(
-                    {
-                        "radius": [radius],
-                        "folder": [folder],
-                        "median": [np.median(lengths[0])],
-                        "ci": [np.std(lengths[0])],
-                        "color": [colors[phenotype_name]],
-                        "phenotype": [phenotype_name],
-                    }
-                )
-                df = df.append(df2)
-                if radius == 1:
-                    dfrm1 = lengths[0]
-                else:
-                    dfr = lengths[0]
-                    earthmove.append(ss.wasserstein_distance(dfr, dfrm1))
-                    dfrm1 = dfr
-            print(phenotype_name, earthmove)
+    ## add walk lengths from random control states to df
+    if os.path.exists(f"{walks_dir}/random/"):
+        colormap['random'] = 'lightgrey'
+        random_starts = os.listdir(f"{walks_dir}/random/")
+        for state in random_starts:
+            folders = glob.glob(f"{walks_dir}/random/{state}/len_walks_[0-9]*")
+            for f in folders:
+                radius = int(f.split("_")[-1].split(".")[0])
+                try:
+                    lengths = pd.read_csv(f, header = None, index_col = None)
+                except pd.errors.EmptyDataError: continue
+                df = df.append(pd.Series(["random",state, radius, np.mean(lengths[0]), np.median(lengths[0]), np.std(lengths[0])],
+                                         index=["cluster", "attr","radius","mean", "median", "std"]),
+                               ignore_index=True)
+        if rescaled:
+            norm_df = df.copy()[['cluster', 'attr', 'radius', 'mean']]
+            df_agg = df.groupby(['cluster','radius']).agg('mean')
+            norm = df_agg.xs('random', level = 'cluster')
+            for i,r in norm.iterrows():
+                norm_df.loc[norm_df['radius']==i,'mean'] = norm_df.loc[norm_df['radius']==i,'mean']/r["mean"]
+            norm_df = norm_df.sort_values(by = "cluster")
+            sns.lineplot(x = 'radius',y = 'mean',err_style='bars',hue = 'cluster', palette=colormap,
+                         data = norm_df, markers = True)
+            plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0, title = "Attractor Subtypes")
 
-            sns.lineplot([2, 3, 4, 5, 6, 7, 8], earthmove, label=phenotype_name)
-            if phenotype_name == "A2":
-                NEv2_ave_change = [i + j for i, j in zip(NEv2_ave_change, earthmove)]
-                countNEv2 += 1
-            elif phenotype_name == "N":
-                NEv1_ave_change = [i + j for i, j in zip(NEv1_ave_change, earthmove)]
-                countNEv1 += 1
-            elif phenotype_name == "A":
-                NE_ave_change = [i + j for i, j in zip(NE_ave_change, earthmove)]
-                countNE += 1
-            elif phenotype_name == "Y":
-                NON_NE_ave_change = [
-                    i + j for i, j in zip(NON_NE_ave_change, earthmove)
-                ]
-                countNONNE += 1
-            elif phenotype_name == "uncl":
-                uncl_ave_change = [i + j for i, j in zip(uncl_ave_change, earthmove)]
-                countUNCL += 1
+            plt.xticks(list(np.unique(norm_df['radius'])))
+            plt.xlabel("Radius of Basin")
+            plt.ylabel("Scaled mean number of steps to leave basin (Fold-change from control mean)")
+            plt.title("Scaled Stability of Attractors by Subtype")
+            plt.tight_layout()
+            if show:
+                plt.show()
+            if save:
+                plt.savefig(f"{walks_dir}/scaled_stability_plot.pdf")
 
-    # print(df.head())
-    ax.set_xlim([2, 8])
-    ax.set_ylim([0, 30])
-    plt.ylabel("Earth Mover's Distance")
+    df = df.sort_values(by = "cluster")
+    sns.lineplot(x = 'radius',y = 'mean',err_style='bars',hue = 'cluster', palette=colormap,
+                      data = df, markers = True)
+    plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0, title = "Attractor Subtypes")
+
+    plt.xticks(list(np.unique(df['radius'])))
     plt.xlabel("Radius of Basin")
-    plt.title("Earth Mover's Distance Between Step Distributions for Different Radii")
-    plt.show()
-
-    random_change = [0] * 7
-    countRANDOM = 0
-
-    # add random background
-    # colors = sns.color_palette("husl", 11)
-    plt.figure()
-    ax = plt.subplot()
-    # fname = op.join(di, "walks/8440463/results.csv")
-    for i, folder in enumerate(folders):
-        earthmove = []
-        if folder == ".DS_Store":
-            continue
-        phenotype_name = "Null"
-        if int(folder) in A_attractors:
-            phenotype_name = "A"
-        elif int(folder) in A2_attractors:
-            phenotype_name = "A2"
-        elif int(folder) in N_attractors:
-            phenotype_name = "N"
-        elif int(folder) in Y_attractors:
-            phenotype_name = "Y"
-        elif int(folder) in uncl_attractors:
-            phenotype_name = "uncl"
-        medians = []
-        datas = []
-        cis = []
-        # plt.figure()
-        if phenotype_name == "Null":
-            print("yes")
-            for radius in [1, 2, 3, 4, 5, 6, 7, 8]:
-                lengths = pd.read_csv(
-                    op.join(di, f"walks/{folder}/len_walks_{radius}.csv"), header=None
-                )
-                # sns.distplot(lengths[0], bins = 100,  label = f'Basin radius = {radius}',color=colors[radius])
-                # ax = plt.subplot()
-                # ax.boxplot(lengths[0], positions=[radius])
-                medians.append(np.median(lengths[0]))
-                cis.append(np.std(lengths[0]))
-                df2 = pd.DataFrame(
-                    {
-                        "radius": [radius],
-                        "folder": [folder],
-                        "median": [np.median(lengths[0])],
-                        "color": [colors[phenotype_name]],
-                        "ci": [np.std(lengths[0])],
-                        "phenotype": [phenotype_name],
-                    }
-                )
-                df = df.append(df2)
-                if radius == 1:
-                    dfrm1 = lengths[0]
-                else:
-                    dfr = lengths[0]
-                    earthmove.append(ss.wasserstein_distance(dfr, dfrm1))
-                    dfrm1 = dfr
-            # sns.lineplot([2,3,4,5,6,7,8],  earthmove)
-            random_change = [i + j for i, j in zip(random_change, earthmove)]
-            countRANDOM += 1
-    # ax.set_xlim([2,8])
-    # ax.set_ylim([0,30])
-    # plt.ylabel("Earth Mover's Distance")
-    # plt.xlabel("Radius of Basin")
-    # plt.title("Earth Mover's Distance Between Step Distributions for Random States")
-    # plt.show()
-    print("Colors", colors)
-    NEv2_ave_change = [i / countNEv2 for i in NEv2_ave_change]
-    NEv1_ave_change = [i / countNEv1 for i in NEv1_ave_change]
-    NE_ave_change = [i / countNE for i in NE_ave_change]
-    NON_NE_ave_change = [i / countNONNE for i in NON_NE_ave_change]
-    uncl_ave_change = [i / countUNCL for i in uncl_ave_change]
-
-    random_change = [i / countRANDOM for i in random_change]
-
-    NEv2_ave_change_norm = [i / j for i, j in zip(NEv2_ave_change, random_change)]
-    NEv1_ave_change_norm = [i / j for i, j in zip(NEv1_ave_change, random_change)]
-    NE_ave_change_norm = [i / j for i, j in zip(NE_ave_change, random_change)]
-    NON_NE_ave_change_norm = [i / j for i, j in zip(NON_NE_ave_change, random_change)]
-    random_change_norm = [i / j for i, j in zip(random_change, random_change)]
-    uncl_ave_change_norm = [i / j for i, j in zip(uncl_ave_change, random_change)]
-    print(NEv2_ave_change, NEv2_ave_change_norm)
-    plt.figure()
-
-    for line, phenotype in zip(
-        [
-            NON_NE_ave_change,
-            NEv2_ave_change,
-            NEv1_ave_change,
-            NE_ave_change,
-            uncl_ave_change,
-            random_change,
-        ],
-        ["Y", "A2", "N", "A", "uncl", "Null"],
-    ):
-        sns.lineplot([2, 3, 4, 5, 6, 7, 8], line, label=phenotype, palette=colors)
-    plt.ylabel("Earth Mover's Distance")
-    plt.xlabel("Radius of Basin")
-    plt.title("Earth Mover's Distance Between Step Distributions for Different Radii")
-    plt.show()
-
-    plt.figure()
-    for line, phenotype in zip(
-        [
-            NON_NE_ave_change_norm,
-            NEv2_ave_change_norm,
-            NEv1_ave_change_norm,
-            NE_ave_change_norm,
-            uncl_ave_change_norm,
-            random_change_norm,
-        ],
-        ["Y", "A2", "N", "A", "uncl", "Null"],
-    ):
-        sns.lineplot([2, 3, 4, 5, 6, 7, 8], line, label=phenotype)
-    plt.ylabel("Earth Mover's Distance")
-    plt.xlabel("Radius of Basin")
-    plt.title("Normalized Earth Mover's Distance Between Step Distributions")
-    plt.show()
-
-    # Plot stability plot for each phenotype (median # of steps to leave)
-    plt.figure()
-    print(df.head(20))
-    ax = plt.subplot()
-    ax = sns.lineplot(
-        x="radius",
-        y="median",
-        err_style="band",
-        hue="phenotype",
-        palette=colors,
-        data=df,
-    )
-    plt.ylim([0, 160])
-
-    plt.show()
-    df = df.reset_index()
-    df_copy = df.copy()
-
-    # Normalize each line by expected number of steps to leave (using control random starting states)
-    for i, r in df.iterrows():
-        norm_row = df.loc[df["phenotype"] == "Null"]
-        norm_row = norm_row.loc[df["radius"] == df.loc[i]["radius"]]
-        norm = np.median(norm_row["median"])
-        df_copy.loc[i, "median"] = df.loc[i]["median"] / norm
-    print(df_copy.head(20))
-    plt.figure()
-    ax = plt.subplot()
-    ax = sns.lineplot(
-        x="radius",
-        y="median",
-        err_style="band",
-        hue="phenotype",
-        palette=colors,
-        data=df_copy,
-    )
-    plt.xlabel("Radius of Basin")
-    # plt.ylim([0,16])
-    plt.ylabel("Normalized Number of Steps to Leave Basin")
-    plt.title("Normalized Stability of Each Phenotype")
-    plt.show()
-
+    plt.ylabel("Mean number of steps to leave basin")
+    plt.title("Stability of Attractors by Subtype")
+    plt.tight_layout()
+    if show:
+        plt.show()
+    if save:
+        plt.savefig(f"{walks_dir}/stability_plot.pdf")
 
 # att_list = list of attractor states
 # phenotypes = list of phenotypes
