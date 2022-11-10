@@ -620,7 +620,8 @@ def plot_destabilization_scores(attractor_dict, perturbations_dir, show = False,
                     plt.savefig(f"{perturbations_dir}/{attr}/knockdown_scores.pdf")
                     plt.close()
 
-def plot_perturb_gene_dictionary(p_dict, full,perturbations_dir,show = False, save = True, ncols = 5, fname = ""):
+def plot_perturb_gene_dictionary(p_dict, full,perturbations_dir,show = False, save = True, ncols = 5, fname = "", 
+                                 palette = {"activate":"green", "knockdown":"orange"}):
     ncols = ncols
     nrows = int(np.ceil(len(p_dict.keys())/ncols))
     # fig = plt.Figure(figsize = (8,8))
@@ -644,7 +645,7 @@ def plot_perturb_gene_dictionary(p_dict, full,perturbations_dir,show = False, sa
         col = int(np.floor(x/nrows))
         row = int(x%nrows)
         sns.barplot(data= plot_df, x = "cluster",y = "score", hue = "perturb", order = my_order,
-                    ax = axs[row,col])
+                    ax = axs[row,col], palette = palette, dodge = False)
         axs[row,col].set_title(f"{k} Perturbations")
         axs[row,col].set_xticklabels(labels = my_order,rotation = 45, fontsize = 8, ha = 'right')
     plt.tight_layout()
