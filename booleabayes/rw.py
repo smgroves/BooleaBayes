@@ -314,8 +314,9 @@ def random_walks(
                         outfile.close()
     
     if random_start > 0:
+        print(save_dir)
         try:
-            os.mkdir(op.join(save_dir, '/walks/random'))
+            os.mkdir(f"{save_dir}/walks/random")
         except FileExistsError:
             pass
         random_list = []
