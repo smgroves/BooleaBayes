@@ -27,8 +27,8 @@ def load_network(filename, remove_sources=False, remove_sinks=True, remove_selfl
     :type add_selfloops_to_sources: bool, optional
     :param header: Header in `filename`, defaults to None
     :type header: str, optional
-    :return: Return a graph_tool Graph object with a vertex dictionary
-    :rtype: networkx.DiGraph
+    :return: Return a graph-tool Graph object and a vertex dictionary
+    :rtype: [networkx.DiGraph, dict]
     """
     if not filename.endswith('.csv') or not os.path.isfile(filename):
         raise Exception('Network path must be a .csv file.  Check file name and location')
