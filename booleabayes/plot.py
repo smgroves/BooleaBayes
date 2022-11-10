@@ -1,5 +1,4 @@
 from . import utils as ut
-from . import tl
 
 import os
 import os.path as op
@@ -17,191 +16,6 @@ import glob
 import networkx as nx
 from graph_tool import all as gt
 
-
-### ------------ NETWORK PLOTS ------------- ###
-def draw_grn(G, gene2vertex, rules, regulators_dict, fname, gene2group=None, gene2color=None, type = "", B_min = 5,
-             save_edge_weights = True, edge_weights_fname = "edge_weights.csv"):
-    """Plot the network and optionally save to pdf
-
-    :param G:  Graph to plot, such as the graph outputted by load.load_network()
-    :type G: graph-tool graph object
-    :param gene2vertex: Vertex dictionary assigning node names to vertices in network, such as the vertex_dict outputted by load.load_network()
-    :type gene2vertex: dict
-    :param rules: _description_
-    :type rules: rules describing the Boolean tree for each node in network, such as the rules outputted by tl.get_rules()
-    :param regulators_dict: dictionary of the form {node_A:[parents_of_A], node_B:[parents_of_B],...}
-    :type regulators_dict: dict
-    :param fname: File path to save network plot
-    :type fname: str
-    :param gene2group: Dictionary of the form {node[str]:group[int]} used to group nodes by color, defaults to None
-    :type gene2group: dict, optional
-    :param gene2color: Dictionary of the form {node[str]:color[vector<float>]} used to group nodes by color, defaults to None
-    :type gene2color: dict, optional
-    :param type: network plot type, either "circle" or "", defaults to ""
-    :type type: str, optional
-    :param B_min: if type =='circle', B_min is argument of minimize_nested_blockmodel_dl for arranging nodes, defaults to 5
-    :type B_min: int, optional
-    :param save_edge_weights: Whether to save the edge weights DataFrame to a csv, defaults to True
-    :type save_edge_weights: bool, optional
-    :param edge_weights_fname: If save_edge_weights == True, file name for saving edge weights DataFrame, defaults to "edge_weights.csv"
-    :type edge_weights_fname: str, optional
-    :return: Graph with additional edge properties, edge_weight_df, edge_binary_df
-    :rtype: [graph-tool graph object, Pandas DataFrame, Pandas DataFrame]
-    """
-    vertex2gene = G.vertex_properties['name']
-
-    vertex_group = None
-    if gene2group is not None:
-        vertex_group = G.new_vertex_property("int")
-        for gene in gene2group.keys():
-            vertex_group[gene2vertex[gene]] = gene2group[gene]
-
-    vertex_colors = [0.4, 0.2, 0.4, 1]
-    if gene2color is not None:
-        vertex_colors = G.new_vertex_property("vector<float>")
-        for gene in gene2color.keys():
-            vertex_colors[gene2vertex[gene]] = gene2color[gene]
-
-    edge_weight_df = pd.DataFrame(index=sorted(regulators_dict.keys()), columns=sorted(regulators_dict.keys()))
-    edge_binary_df = pd.DataFrame(index=sorted(regulators_dict.keys()), columns=sorted(regulators_dict.keys()))
-
-    edge_markers = G.new_edge_property("string")
-    edge_weights = G.new_edge_property("float")
-    edge_colors = G.new_edge_property("vector<float>")
-    for edge in G.edges():
-        edge_colors[edge] = [0., 0., 0., 0.3]
-        edge_markers[edge] = "arrow"
-        edge_weights[edge] = 0.2
-
-    for edge in G.edges():
-        vs, vt = edge.source(), edge.target()
-        source = vertex2gene[vs]
-        target = vertex2gene[vt]
-        regulators = regulators_dict[target]
-        if source in regulators:
-            i = regulators.index(source)
-            n = 2 ** len(regulators)
-
-            rule = rules[target]
-            off_leaves, on_leaves = tl.get_leaves_of_regulator(n, i)
-            if rule[off_leaves].mean() < rule[on_leaves].mean():  # The regulator is an activator
-                edge_colors[edge] = [0., 0.3, 0., 0.8]
-                edge_binary_df.loc[target,source] = 1
-            else:
-                edge_markers[edge] = "bar"
-                edge_colors[edge] = [0.88, 0., 0., 0.5]
-                edge_binary_df.loc[target,source] = -1
-
-            # note: not sure why I added 0.2 to each edge weight.. skewing act larger and inh smaller?
-            edge_weights[edge] = rule[on_leaves].mean() - rule[off_leaves].mean() # + 0.2
-            edge_weight_df.loc[target, source] = rule[on_leaves].mean() - rule[off_leaves].mean()
-    G.edge_properties["edge_weights"] = edge_weights
-    if save_edge_weights:
-        edge_weight_df.to_csv(edge_weights_fname)
-    pos = gt.sfdp_layout(G, groups=vertex_group,mu = 1, eweight=edge_weights, max_iter=1000)
-    # pos = gt.arf_layout(G, max_iter=100, dt=1e-4)
-    eprops = {"color": edge_colors, "pen_width": 2, "marker_size": 15, "end_marker": edge_markers}
-    vprops = {"text": vertex2gene, "shape": "circle", "size": 20, "pen_width": 1, 'fill_color': vertex_colors}
-    if type == 'circle':
-        state = gt.minimize_nested_blockmodel_dl(G, B_min = B_min)
-        state.draw(vprops=vprops, eprops=eprops)  # mplfig=ax[0,1])
-    else:
-        gt.graph_draw(G, pos=pos, output=fname, vprops=vprops, eprops=eprops, output_size=(1000, 1000))
-    return G, edge_weight_df, edge_binary_df
-
-def plot_subgraph(keep_nodes, network_file, nodes, edge_weights, keep_parents = True, keep_children = True,
-                  save_dir = "", arrows = "straight", show = False, save = True, off_node_arrows_gray = True, weight = 3):
-    """Plot a subgraph of the network centered on given nodes
-
-    :param keep_nodes: list of nodes to keep centered in network; parent and child nodes will also be kept
-    :type keep_nodes: list of str
-    :param network_file: file path for full network
-    :type network_file: str
-    :param nodes: list of all nodes in network
-    :type nodes: list of str
-    :param edge_weights: DataFrame of edge weights to color and weight edges in subgraph with rows = child nodes and cols = parent nodes for each interaction. This is generated by draw_grn or can be replaced by signed_strengths from fitted rules.
-    :type edge_weights: Pandas DataFrame
-    :param keep_parents: Whether to keep parent nodes of keep_nodes, defaults to True
-    :type keep_parents: bool, optional
-    :param keep_children: Whether to keep child nodes of keep_nodes, defaults to True
-    :type keep_children: bool, optional
-    :param save_dir: path to save plot of subgraph, defaults to ""
-    :type save_dir: str, optional
-    :param arrows: Option for arrow style in {'curved', 'straight'}, defaults to "straight"
-    :type arrows: str, optional
-    :param show: Whether to show plots, defaults to False
-    :type show: bool, optional
-    :param save: Whether to save plots to file {save_dir}/subnetwork{keep_nodes}_{arrows}.pdf, defaults to True
-    :type save: bool, optional
-    :param off_node_arrows_gray: Whether the arrows between nodes that do not include the central nodes should be colored (by edge type) or grey, defaults to True
-    :type off_node_arrows_gray: bool, optional
-    :param weight: Weight multiplier for edges in plot, defaults to 3
-    :type weight: int, optional
-    """
-
-    edge_df = pd.read_csv(network_file, header = None)##network file
-
-    G = nx.DiGraph()
-    for node in nodes:
-        G.add_node(node)
-
-
-    for i,r in edge_df.iterrows():
-        G.add_edge(r[0],r[1], weight = edge_weights.loc[r[1],r[0]])
-
-    total_keep = keep_nodes.copy()
-    attrs = {}
-
-    if keep_children:
-        for n in keep_nodes:
-            for successor in G.successors(n):
-                total_keep.append(successor)
-                attrs[successor] = {"subset":1}
-    if keep_parents:
-        for n in keep_nodes:
-            for predecessor in G.predecessors(n):
-                total_keep.append(predecessor)
-                attrs[predecessor] = {"subset":3}
-    for node in keep_nodes:
-        attrs[node] = {"subset":2}
-
-    SG = G.subgraph(nodes = total_keep)
-    nx.set_node_attributes(SG, attrs)
-    edges = SG.edges()
-    weights = [weight*np.abs(SG[u][v]['weight']) for u,v in edges]
-    color = []
-    for u,v in edges:
-        if u in keep_nodes or v in keep_nodes:
-            if SG[u][v]['weight'] < 0:
-                color.append('red')
-            else:
-                color.append('green')
-        else:
-            if off_node_arrows_gray:
-                color.append('lightgray')
-            else:
-                if SG[u][v]['weight'] < 0:
-                    color.append('red')
-                else:
-                    color.append('green')
-
-    print(nx.get_node_attributes(SG, name = 'subset'))
-    if arrows == "straight":
-        nx.draw_networkx(SG,pos=nx.multipartite_layout(SG,align = 'horizontal'),node_size = 500, font_size = 6,
-                     with_labels=True, arrows = True,width = weights, edge_color = color)#,
-    elif arrows == "curved":
-        nx.draw_networkx(SG,pos=nx.multipartite_layout(SG,align = 'horizontal'),node_size = 500, font_size = 6,
-                         with_labels=True, arrows = True,width = weights, edge_color = color,
-                        connectionstyle="arc3,rad=0.4")
-    else:
-        print("arrows must be one of {'curved','straight'}")
-    name_plot = ""
-    for name in keep_nodes:
-        name_plot = name_plot + f"_{name}"
-    if show:
-        plt.show()
-    if save:
-        plt.savefig(f"{save_dir}/subnetwork{name_plot}_{arrows}.pdf")
 
 ### ------------ ACCURACY PLOTS ------------ ###
 
@@ -1191,3 +1005,189 @@ def check_middle_stop(start_idx, basin, check_stops, radius=2):
                             stopped_NEH += 1
                         break
     return stopped_NE, stopped_NEH, stopped_MLH, stopped_ML
+
+
+### ------------ NETWORK PLOTS ------------- ###
+def draw_grn(G, gene2vertex, rules, regulators_dict, fname, gene2group=None, gene2color=None, type = "", B_min = 5,
+             save_edge_weights = True, edge_weights_fname = "edge_weights.csv"):
+    """Plot the network and optionally save to pdf
+
+    :param G:  Graph to plot, such as the graph outputted by load.load_network()
+    :type G: graph-tool graph object
+    :param gene2vertex: Vertex dictionary assigning node names to vertices in network, such as the vertex_dict outputted by load.load_network()
+    :type gene2vertex: dict
+    :param rules: _description_
+    :type rules: rules describing the Boolean tree for each node in network, such as the rules outputted by tl.get_rules()
+    :param regulators_dict: dictionary of the form {node_A:[parents_of_A], node_B:[parents_of_B],...}
+    :type regulators_dict: dict
+    :param fname: File path to save network plot
+    :type fname: str
+    :param gene2group: Dictionary of the form {node[str]:group[int]} used to group nodes by color, defaults to None
+    :type gene2group: dict, optional
+    :param gene2color: Dictionary of the form {node[str]:color[vector<float>]} used to group nodes by color, defaults to None
+    :type gene2color: dict, optional
+    :param type: network plot type, either "circle" or "", defaults to ""
+    :type type: str, optional
+    :param B_min: if type =='circle', B_min is argument of minimize_nested_blockmodel_dl for arranging nodes, defaults to 5
+    :type B_min: int, optional
+    :param save_edge_weights: Whether to save the edge weights DataFrame to a csv, defaults to True
+    :type save_edge_weights: bool, optional
+    :param edge_weights_fname: If save_edge_weights == True, file name for saving edge weights DataFrame, defaults to "edge_weights.csv"
+    :type edge_weights_fname: str, optional
+    :return: Graph with additional edge properties, edge_weight_df, edge_binary_df
+    :rtype: [graph-tool graph object, Pandas DataFrame, Pandas DataFrame]
+    """
+    vertex2gene = G.vertex_properties['name']
+
+    vertex_group = None
+    if gene2group is not None:
+        vertex_group = G.new_vertex_property("int")
+        for gene in gene2group.keys():
+            vertex_group[gene2vertex[gene]] = gene2group[gene]
+
+    vertex_colors = [0.4, 0.2, 0.4, 1]
+    if gene2color is not None:
+        vertex_colors = G.new_vertex_property("vector<float>")
+        for gene in gene2color.keys():
+            vertex_colors[gene2vertex[gene]] = gene2color[gene]
+
+    edge_weight_df = pd.DataFrame(index=sorted(regulators_dict.keys()), columns=sorted(regulators_dict.keys()))
+    edge_binary_df = pd.DataFrame(index=sorted(regulators_dict.keys()), columns=sorted(regulators_dict.keys()))
+
+    edge_markers = G.new_edge_property("string")
+    edge_weights = G.new_edge_property("float")
+    edge_colors = G.new_edge_property("vector<float>")
+    for edge in G.edges():
+        edge_colors[edge] = [0., 0., 0., 0.3]
+        edge_markers[edge] = "arrow"
+        edge_weights[edge] = 0.2
+
+    for edge in G.edges():
+        vs, vt = edge.source(), edge.target()
+        source = vertex2gene[vs]
+        target = vertex2gene[vt]
+        regulators = regulators_dict[target]
+        if source in regulators:
+            i = regulators.index(source)
+            n = 2 ** len(regulators)
+
+            rule = rules[target]
+            off_leaves, on_leaves = ut.get_leaves_of_regulator(n, i)
+            if rule[off_leaves].mean() < rule[on_leaves].mean():  # The regulator is an activator
+                edge_colors[edge] = [0., 0.3, 0., 0.8]
+                edge_binary_df.loc[target,source] = 1
+            else:
+                edge_markers[edge] = "bar"
+                edge_colors[edge] = [0.88, 0., 0., 0.5]
+                edge_binary_df.loc[target,source] = -1
+
+            # note: not sure why I added 0.2 to each edge weight.. skewing act larger and inh smaller?
+            edge_weights[edge] = rule[on_leaves].mean() - rule[off_leaves].mean() # + 0.2
+            edge_weight_df.loc[target, source] = rule[on_leaves].mean() - rule[off_leaves].mean()
+    G.edge_properties["edge_weights"] = edge_weights
+    if save_edge_weights:
+        edge_weight_df.to_csv(edge_weights_fname)
+    pos = gt.sfdp_layout(G, groups=vertex_group,mu = 1, eweight=edge_weights, max_iter=1000)
+    # pos = gt.arf_layout(G, max_iter=100, dt=1e-4)
+    eprops = {"color": edge_colors, "pen_width": 2, "marker_size": 15, "end_marker": edge_markers}
+    vprops = {"text": vertex2gene, "shape": "circle", "size": 20, "pen_width": 1, 'fill_color': vertex_colors}
+    if type == 'circle':
+        state = gt.minimize_nested_blockmodel_dl(G, B_min = B_min)
+        state.draw(vprops=vprops, eprops=eprops)  # mplfig=ax[0,1])
+    else:
+        gt.graph_draw(G, pos=pos, output=fname, vprops=vprops, eprops=eprops, output_size=(1000, 1000))
+    return G, edge_weight_df, edge_binary_df
+
+def plot_subgraph(keep_nodes, network_file, nodes, edge_weights, keep_parents = True, keep_children = True,
+                  save_dir = "", arrows = "straight", show = False, save = True, off_node_arrows_gray = True, weight = 3):
+    """Plot a subgraph of the network centered on given nodes
+
+    :param keep_nodes: list of nodes to keep centered in network; parent and child nodes will also be kept
+    :type keep_nodes: list of str
+    :param network_file: file path for full network
+    :type network_file: str
+    :param nodes: list of all nodes in network
+    :type nodes: list of str
+    :param edge_weights: DataFrame of edge weights to color and weight edges in subgraph with rows = child nodes and cols = parent nodes for each interaction. This is generated by draw_grn or can be replaced by signed_strengths from fitted rules.
+    :type edge_weights: Pandas DataFrame
+    :param keep_parents: Whether to keep parent nodes of keep_nodes, defaults to True
+    :type keep_parents: bool, optional
+    :param keep_children: Whether to keep child nodes of keep_nodes, defaults to True
+    :type keep_children: bool, optional
+    :param save_dir: path to save plot of subgraph, defaults to ""
+    :type save_dir: str, optional
+    :param arrows: Option for arrow style in {'curved', 'straight'}, defaults to "straight"
+    :type arrows: str, optional
+    :param show: Whether to show plots, defaults to False
+    :type show: bool, optional
+    :param save: Whether to save plots to file {save_dir}/subnetwork{keep_nodes}_{arrows}.pdf, defaults to True
+    :type save: bool, optional
+    :param off_node_arrows_gray: Whether the arrows between nodes that do not include the central nodes should be colored (by edge type) or grey, defaults to True
+    :type off_node_arrows_gray: bool, optional
+    :param weight: Weight multiplier for edges in plot, defaults to 3
+    :type weight: int, optional
+    """
+
+    edge_df = pd.read_csv(network_file, header = None)##network file
+
+    G = nx.DiGraph()
+    for node in nodes:
+        G.add_node(node)
+
+
+    for i,r in edge_df.iterrows():
+        G.add_edge(r[0],r[1], weight = edge_weights.loc[r[1],r[0]])
+
+    total_keep = keep_nodes.copy()
+    attrs = {}
+
+    if keep_children:
+        for n in keep_nodes:
+            for successor in G.successors(n):
+                total_keep.append(successor)
+                attrs[successor] = {"subset":1}
+    if keep_parents:
+        for n in keep_nodes:
+            for predecessor in G.predecessors(n):
+                total_keep.append(predecessor)
+                attrs[predecessor] = {"subset":3}
+    for node in keep_nodes:
+        attrs[node] = {"subset":2}
+
+    SG = G.subgraph(nodes = total_keep)
+    nx.set_node_attributes(SG, attrs)
+    edges = SG.edges()
+    weights = [weight*np.abs(SG[u][v]['weight']) for u,v in edges]
+    color = []
+    for u,v in edges:
+        if u in keep_nodes or v in keep_nodes:
+            if SG[u][v]['weight'] < 0:
+                color.append('red')
+            else:
+                color.append('green')
+        else:
+            if off_node_arrows_gray:
+                color.append('lightgray')
+            else:
+                if SG[u][v]['weight'] < 0:
+                    color.append('red')
+                else:
+                    color.append('green')
+
+    print(nx.get_node_attributes(SG, name = 'subset'))
+    if arrows == "straight":
+        nx.draw_networkx(SG,pos=nx.multipartite_layout(SG,align = 'horizontal'),node_size = 500, font_size = 6,
+                     with_labels=True, arrows = True,width = weights, edge_color = color)#,
+    elif arrows == "curved":
+        nx.draw_networkx(SG,pos=nx.multipartite_layout(SG,align = 'horizontal'),node_size = 500, font_size = 6,
+                         with_labels=True, arrows = True,width = weights, edge_color = color,
+                        connectionstyle="arc3,rad=0.4")
+    else:
+        print("arrows must be one of {'curved','straight'}")
+    name_plot = ""
+    for name in keep_nodes:
+        name_plot = name_plot + f"_{name}"
+    if show:
+        plt.show()
+    if save:
+        plt.savefig(f"{save_dir}/subnetwork{name_plot}_{arrows}.pdf")

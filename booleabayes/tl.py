@@ -1,5 +1,5 @@
 from . import utils as ut
-from .plot import plot_roc, plot_rule, plot_accuracy, plot_destabilization_scores,plot_perturb_gene_dictionary
+from .plot import *
 
 import pandas as pd
 import numpy as np
@@ -60,7 +60,7 @@ def detect_irrelevant_regulator(regulators, rule, threshold=0.1):
         max_dif = 0
         tot_dif = 0
         signed_tot_dif = 0
-        leaves = get_leaves_of_regulator(2**n, r)
+        leaves = ut.get_leaves_of_regulator(2**n, r)
         for i, j in zip(*leaves):
             dif = np.abs(rule[j] - rule[i])
             max_dif = max(dif, max_dif)
@@ -77,27 +77,6 @@ def detect_irrelevant_regulator(regulators, rule, threshold=0.1):
         dict(zip(regulators, signed_tot_difs)),
     )  ### added signed_tot_dif to output
     # return irrelevant
-
-
-# n = number of leaves in the rule (i.e. 2**N for a node with N regulators)
-# index = index of the regulator is being looked at, when viewing the rule as a binary decision tree
-# (e.g., index=0 refers to the top branch of the bdt)
-def get_leaves_of_regulator(n, index):
-    step_size = int(np.round(n / (2 ** (index + 1))))
-    num_steps = int(np.round(n / step_size / 2))
-    off_leaves = []
-    on_leaves = []
-
-    base = 0
-    for step in range(num_steps):
-        for i in range(step_size):
-            off_leaves.append(base + i)
-        base += step_size
-        for i in range(step_size):
-            on_leaves.append(base + i)
-        base += step_size
-
-    return off_leaves, on_leaves
 
 
 # the user can determine if they want to just save, just show, or save and show the plot

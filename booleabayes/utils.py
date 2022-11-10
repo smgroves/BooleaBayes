@@ -236,6 +236,27 @@ def get_clusters(data, data_test=None, is_data_split=False, cellID_table=None, c
             clusters = pd.DataFrame([0]*len(data.index), index = data.index, columns=['class'])
      
     return clusters
+
+
+# n = number of leaves in the rule (i.e. 2**N for a node with N regulators)
+# index = index of the regulator is being looked at, when viewing the rule as a binary decision tree
+# (e.g., index=0 refers to the top branch of the bdt)
+def get_leaves_of_regulator(n, index):
+    step_size = int(np.round(n / (2 ** (index + 1))))
+    num_steps = int(np.round(n / step_size / 2))
+    off_leaves = []
+    on_leaves = []
+
+    base = 0
+    for step in range(num_steps):
+        for i in range(step_size):
+            off_leaves.append(base + i)
+        base += step_size
+        for i in range(step_size):
+            on_leaves.append(base + i)
+        base += step_size
+
+    return off_leaves, on_leaves
     
 def get_avg_state_index(nodes, average_states, outfile, save_dir=None):
     n = len(nodes)
