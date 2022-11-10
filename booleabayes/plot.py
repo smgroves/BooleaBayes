@@ -515,7 +515,8 @@ def plot_histograms(n_steps_0, n_steps_1, expt_label, bins=20, fname=None, ax=No
 ## one plot per perturbation type (Activating vs inhibiting)
 ## or plot by cluster (boxplots)
 
-def plot_destabilization_scores(attractor_dict, perturbations_dir, show = False, save = True, clustered = True, save_dir = "clustered_perturb_plots"):
+def plot_destabilization_scores(attractor_dict, perturbations_dir, show = False, save = True, clustered = True,
+                                act_kd_together = False, save_dir = "clustered_perturb_plots"):
     for k in attractor_dict.keys():
         print(k)
         if clustered:
@@ -530,50 +531,72 @@ def plot_destabilization_scores(attractor_dict, perturbations_dir, show = False,
                 for i,r in tmp.iterrows():
                     results = results.append(pd.Series([attr, r['gene'],r['perturb'],r['score']],
                                                        index = ['attr','gene','perturb','score']), ignore_index=True)
-            results_act = results.loc[results["perturb"] == 'activate']
-            plt.figure()
-            # my_order = results_act.sort_values(by = 'score')['gene'].values
-            my_order = results_act.groupby(by=["gene"]).median().sort_values(by = 'score').index.values
-            plt.axhline(y = 0, linestyle = "--", color = 'lightgrey')
+            if act_kd_together:
+                plt.figure()
+                my_order = sorted(np.unique(results['gene']))
+                plt.axhline(y = 0, linestyle = "--", color = 'lightgrey')
 
-            if len(attractor_dict[k]) == 1:
-                sns.barplot(data = results_act, x = 'gene', y = 'score', order = my_order)
+                if len(attractor_dict[k]) == 1:
+                    sns.barplot(data = results, x = 'gene', y = 'score', hue = 'perturb', order = my_order,
+                                palette = {"activate":sns.color_palette("tab10")[0], "knockdown":sns.color_palette("tab10")[1]})
+                else:
+                    sns.boxplot(data = results, x = 'gene', y = 'score',hue = 'perturb', order = my_order,
+                                palette = {"activate":sns.color_palette("tab10")[0], "knockdown":sns.color_palette("tab10")[1]})
+                plt.xticks(rotation = 90, fontsize = 8)
+                plt.xlabel("Gene")
+                plt.ylabel("Stabilization Score")
+                plt.title(f"Destabilization by TF Perturbation for {k} Attractors \n {len(attractor_dict[k])} Attractors")
+                plt.tight_layout()
+                if show:
+                    plt.show()
+                if save:
+                    plt.savefig(f"{perturbations_dir}/{save_dir}/{k}_scores.pdf")
+                    plt.close()
             else:
-                sns.boxplot(data = results_act, x = 'gene', y = 'score', order = my_order)
-            plt.xticks(rotation = 90, fontsize = 8)
-            plt.xlabel("Gene")
-            plt.ylabel("Stabilization Score")
-            plt.title(f"Destabilization by TF Activation for {k} Attractors \n {len(attractor_dict[k])} Attractors")
-            plt.legend([],[], frameon=False)
-            plt.tight_layout()
-            if show:
-                plt.show()
-            if save:
-                plt.savefig(f"{perturbations_dir}/{save_dir}/{k}_activation_scores.pdf")
-                plt.close()
                 results_act = results.loc[results["perturb"] == 'activate']
+                plt.figure()
+                # my_order = results_act.sort_values(by = 'score')['gene'].values
+                my_order = results_act.groupby(by=["gene"]).median().sort_values(by = 'score').index.values
+                plt.axhline(y = 0, linestyle = "--", color = 'lightgrey')
 
-            results_kd = results.loc[results["perturb"] == 'knockdown']
+                if len(attractor_dict[k]) == 1:
+                    sns.barplot(data = results_act, x = 'gene', y = 'score', order = my_order)
+                else:
+                    sns.boxplot(data = results_act, x = 'gene', y = 'score', order = my_order)
+                plt.xticks(rotation = 90, fontsize = 8)
+                plt.xlabel("Gene")
+                plt.ylabel("Stabilization Score")
+                plt.title(f"Destabilization by TF Activation for {k} Attractors \n {len(attractor_dict[k])} Attractors")
+                plt.legend([],[], frameon=False)
+                plt.tight_layout()
+                if show:
+                    plt.show()
+                if save:
+                    plt.savefig(f"{perturbations_dir}/{save_dir}/{k}_activation_scores.pdf")
+                    plt.close()
 
-            plt.figure()
-            # my_order = results_act.sort_values(by = 'score')['gene'].values
-            my_order = results_kd.groupby(by=["gene"]).median().sort_values(by = 'score').index.values
-            plt.axhline(y = 0, linestyle = "--", color = 'lightgrey')
-            if len(attractor_dict[k]) == 1:
-                sns.barplot(data = results_kd, x = 'gene', y = 'score', order = my_order)
-            else:
-                sns.boxplot(data = results_kd, x = 'gene', y = 'score', order = my_order)
-            plt.xticks(rotation = 90, fontsize = 8)
-            plt.xlabel("Gene")
-            plt.ylabel("Stabilization Score")
-            plt.title(f"Destabilization by TF Knockdown for {k} Attractors \n {len(attractor_dict[k])} Attractors")
-            plt.legend([],[], frameon=False)
-            plt.tight_layout()
-            if show:
-                plt.show()
-            if save:
-                plt.savefig(f"{perturbations_dir}/{save_dir}/{k}_knockdown_scores.pdf")
-                plt.close()
+                results_kd = results.loc[results["perturb"] == 'knockdown']
+
+                plt.figure()
+                # my_order = results_act.sort_values(by = 'score')['gene'].values
+                my_order = results_kd.groupby(by=["gene"]).median().sort_values(by = 'score').index.values
+                plt.axhline(y = 0, linestyle = "--", color = 'lightgrey')
+                if len(attractor_dict[k]) == 1:
+                    sns.barplot(data = results_kd, x = 'gene', y = 'score', order = my_order)
+                else:
+                    sns.boxplot(data = results_kd, x = 'gene', y = 'score', order = my_order)
+                plt.xticks(rotation = 90, fontsize = 8)
+                plt.xlabel("Gene")
+                plt.ylabel("Stabilization Score")
+                plt.title(f"Destabilization by TF Knockdown for {k} Attractors \n {len(attractor_dict[k])} Attractors")
+                plt.legend([],[], frameon=False)
+                plt.tight_layout()
+                if show:
+                    plt.show()
+                if save:
+                    plt.savefig(f"{perturbations_dir}/{save_dir}/{k}_knockdown_scores.pdf")
+                    plt.close()
+
         else:
             for attr in attractor_dict[k]:
                 results = pd.read_csv(f"{perturbations_dir}/{attr}/results.csv", header = None, index_col = None)
@@ -627,7 +650,7 @@ def plot_perturb_gene_dictionary(p_dict, full,perturbations_dir,show = False, sa
     # fig = plt.Figure(figsize = (8,8))
     fig, axs = plt.subplots(ncols = ncols, nrows= nrows, figsize=(20, 30))
 
-    for x, k in enumerate(p_dict.keys()):
+    for x, k in enumerate(sorted(p_dict.keys())):
         print(k)
         #for each gene, for associated clusters that are destabilized, make a df of scores to be used for plotting
         plot_df = pd.DataFrame(columns = ["cluster","attr","gene","perturb","score"])
