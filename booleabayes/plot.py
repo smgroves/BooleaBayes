@@ -19,6 +19,39 @@ from graph_tool import all as gt
 
 ### ------------ ACCURACY PLOTS ------------ ###
 
+def plot_sklearn_metrics(VAL_DIR, show = False, save = True):
+    try:
+        summary_stats = pd.read_csv(f"{VAL_DIR}/summary_stats.csv", header = 0, index_col=0)
+    except FileNotFoundError:
+        print("You must run tl.get_sklearn_metrics first.")
+    if save:
+        try:
+            os.mkdir(f"{VAL_DIR}/summary_plots")
+        except FileExistsError:
+            pass
+    metric_dict = {'accuracy':{"Best":'1', "Worst":'0'},
+                   'balanced_accuracy_score':{"Best":'1', "Worst":'0'},
+                   'f1':{"Best":'1', "Worst":'0'},
+                   'roc_auc_score':{"Best":'1', "Worst":'0'},
+                   "precision":{"Best":'1', "Worst":'0'},
+                   "recall":{"Best":'1', "Worst":'0'},
+                   "explained_variance":{"Best":'1', "Worst":'0'},
+                   'max_error':{"Best":'0', "Worst":"High"},
+                   'r2':{"Best":'1', "Worst":'0'},
+                   'log-loss':{"Best":"Low", "Worst":"High"}}
+    for c in sorted(list(set(summary_stats.columns).difference({'gene'}))):
+        print(c)
+        plt.figure(figsize = (20,8))
+        my_order = summary_stats.sort_values(c)['gene'].values
+        sns.barplot(data = summary_stats, x = 'gene', y = c, order = my_order)
+        plt.xticks(rotation = 90, fontsize = 8)
+        plt.ylabel(f"{c.capitalize()} (Best: {metric_dict[c]['Best']}, Worst: {metric_dict[c]['Worst']})")
+        plt.title(c.capitalize())
+        if show:
+            plt.show()
+        if save:
+            plt.savefig(f"{VAL_DIR}/summary_plots/{c}.pdf")
+            plt.close()
 
 def plot_roc(
     fprs, tprs, area, node, save=False, save_dir=None,  show_plot=True

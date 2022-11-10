@@ -21,6 +21,7 @@ import sklearn.model_selection as ms
 from scipy.stats import mannwhitneyu
 from statsmodels.stats.multitest import multipletests
 import json
+from sklearn.metrics import *
 
 
 ### ------------ RULE FITTING ----------- ###
@@ -524,7 +525,7 @@ def save_auc_by_gene(area_all, nodes, save_dir):
 # Function to run fit validation
 # first runs plot_acuracy(_scvelo)() to get validation dataframe
 # then it calculates roc giving the user the option to plot and save the dataframes and/or plots
-# val_type = validation type; use the plot scvelo accuracy funrction or just the plot_accuracy function
+# val_type = validation type; use the plot scvelo accuracy function or just the plot_accuracy function
 # fname = optional name to append to default file save name
 # returns: validation, tprs_all, fprs_all, and area_all
 def fit_validation(
@@ -633,6 +634,54 @@ def roc_from_file(
         area_all.append(area)
     return tpr_all, fpr_all, area_all
 
+
+def get_sklearn_metrics(VAL_DIR, plot_cm = True, show = False, save = True, save_stats = True):
+    files = glob.glob(f"{VAL_DIR}/accuracy_plots/*.csv")
+    summary_stats = pd.DataFrame(columns = ['gene','accuracy','balanced_accuracy_score','f1','roc_auc_score', "precision",
+                                                "recall", "explained_variance", 'max_error', 'r2','log-loss'])
+    if len(files) == 0:
+        print("You must first run tl.fit_validation() to generate the appropriate files.")
+        return summary_stats
+    else:
+
+        for f in files:
+            val_df = pd.read_csv(f, header = 0, index_col=0)
+            val_df['actual_binary'] = [{True:1, False:0}[x] for x in val_df['actual']> 0.5]
+            val_df['predicted_binary'] = [{True:1, False:0}[x] for x in val_df['predicted']> 0.5]
+            gene = f.split("/")[-1].split("_")[0]
+            #classification stats
+            acc = accuracy_score(val_df['actual_binary'], val_df['predicted_binary'])
+            bal_acc = balanced_accuracy_score(val_df['actual_binary'], val_df['predicted_binary'])
+            f1 = f1_score(val_df['actual_binary'], val_df['predicted_binary'])
+            prec = precision_score(val_df['actual_binary'], val_df['predicted_binary'])
+            rec = recall_score(val_df['actual_binary'], val_df['predicted_binary'])
+
+            #regression stats
+            roc_auc = roc_auc_score(val_df['actual_binary'], val_df['predicted'])
+            expl_var = explained_variance_score(val_df['actual'], val_df['predicted'])
+            max_err = max_error(val_df['actual'], val_df['predicted'])
+            r2 = r2_score(val_df['actual'], val_df['predicted'])
+            ll = log_loss(val_df['actual_binary'], val_df['predicted'])
+
+            summary_stats = summary_stats.append(pd.Series([gene, acc, bal_acc,f1,roc_auc,prec,rec,expl_var,max_err,r2,ll],
+                                                        index=summary_stats.columns),ignore_index=True)
+            if plot_cm:
+                plt.figure()
+                cm = confusion_matrix(val_df['actual_binary'], val_df['predicted_binary'])
+                disp = ConfusionMatrixDisplay(confusion_matrix=cm)
+                disp.plot(cmap = "Blues")
+                plt.title(gene)
+                if show:
+                    plt.show()
+                if save:
+                    plt.savefig(f"{VAL_DIR}/accuracy_plots/{gene}_confusion_matrix.pdf")
+                    plt.close()
+        
+        summary_stats = summary_stats.sort_values('gene').reset_index().drop("index",axis = 1)
+
+        if save_stats:
+            summary_stats.to_csv(f"{VAL_DIR}/summary_stats.csv")
+        return summary_stats
 
 ### ------------ ATTRACTORS ------------ ###
 
