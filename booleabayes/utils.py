@@ -621,3 +621,73 @@ def get_attractor_dict(ATTRACTOR_DIR, filtered = True):
         attractor_dict[i].append(state_bool2idx(list(r)))
     
     return attractor_dict
+
+def print_graph_info(graph, vertex_dict, nodes, fname, brcd = "", dir_prefix = "", plot = True,
+                     fillcolor = 'lightcyan', gene2color = None, layout = None, add_edge_weights = True,
+                     ew_df = None):
+    print("==================================")
+    print("Graph properties")
+    print("==================================")
+    print(graph)
+    # print("Edge and vertex properties: ", graph.list_properties())
+    print("Number of nodes:", len(nodes))
+    print('Nodes: ', nodes)
+    sources = []
+    sinks = []
+    for i in range(len(nodes)):
+        if graph.vp.source[i] == 1: sources.append(graph.vp.name[i])
+        if graph.vp.sink[i] == 1: sinks.append(graph.vp.name[i])
+    print("Sources: ", len(sources), sources)
+    print("Sinks: ",len(sinks), sinks)
+
+    #treat network as if it is undirected to ensure largest component includes all nodes and edges
+    u = gt.extract_largest_component(graph, directed=False)
+    print("Network is a single connected component: ", gt.isomorphism(graph,u))
+    if gt.isomorphism(graph,u) == False:
+        print("\t Largest component of network: ")
+        print("\t", u)
+    print("Directed acyclic graph: ", gt.is_DAG(graph))
+    print("==================================")
+
+    if plot:
+        vertex2gene = graph.vertex_properties['name']
+        vertex_colors = fillcolor
+        if gene2color is not None:
+            vertex_colors = graph.new_vertex_property("string")
+            for gene in gene2color.keys():
+                vertex_colors[vertex_dict[gene]] = gene2color[gene]
+        edge_weights = graph.new_edge_property("float")
+        edge_color = graph.new_edge_property("vector<float>")
+
+        for edge in graph.edges():
+            edge_weights[edge] = 0.2
+            edge_color[edge] = [0,0,0,1]
+
+        if add_edge_weights:
+            min_ew = np.min(ew_df['score'])
+            max_ew = np.max(ew_df['score'])
+
+            for edge in graph.edges():
+                vs, vt = edge.source(), edge.target()
+                source = vertex2gene[vs]
+                target = vertex2gene[vt]
+                w = float(2*(np.mean(ew_df.loc[(ew_df['source']==source)&(ew_df['target']==target)]['score'].values)-min_ew)/max_ew+0.2)
+                if np.isnan(w):
+                    edge_weights[edge] = .2
+                    edge_color[edge] = [0,0,0,.1]
+                else:
+                    edge_weights[edge] = w
+                    edge_color[edge] = [0,0,0,(w-0.2)/2]
+
+        graph.edge_properties["edge_weights"] = edge_weights
+        graph.edge_properties["edge_color"] = edge_color
+        vprops = {"text": vertex2gene, "shape": "circle", "size": 20, "pen_width": 1, 'fill_color': vertex_colors}
+        eprops = {"color": edge_color}
+
+        if layout == 'circle':
+            state = gt.minimize_nested_blockmodel_dl(graph, B_min = 10)
+            state.draw(vprops=vprops,output=f"{dir_prefix}/{brcd}/{fname}_simple_circle_network.pdf", output_size=(1000, 1000))  # mplfig=ax[0,1])
+        else:
+            pos = gt.sfdp_layout(graph, mu = 1, eweight=edge_weights, max_iter=1000)
+            gt.graph_draw(graph, pos=pos, vprops = vprops, eprops = eprops, edge_pen_width = edge_weights, output=f"{dir_prefix}/{brcd}/{fname}_simple_network.pdf", output_size=(1000, 1000))
+

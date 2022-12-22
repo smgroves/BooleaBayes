@@ -30,3 +30,10 @@ BooleaBayes Usage:
 * ``plot`` = plotting
 * ``tl`` = tools
 * ``utils`` = utilities
+
+BooleaBayes Tutorial:
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+A tutorial can be found `here <https://github.com/smgroves/BooleaBayes/blob/main/Tutorials/bbayes_sample.ipynb>`_. This tutorial assumes you have already generated a network structure and want to use BooleaBayes to fit the network rules and run simulations.
+The network structure should be a csv as outputted by ``bb.net.make_network()``, where the first column is the parent nodes and the second column is the child nodes. Additional columns of metadata can also be given, but the file should have no headers.
+

@@ -87,12 +87,12 @@ def prune_to_chea(G_orig, prune_self_loops=True):
 def make_network(
     tfs,
     outdir="",
-    prune=True,
+    do_prune=True,
     prune_sinks=True,
     prune_sources=True,
-    prune_info=True,
+    do_prune_info=True,
     prune_self_loops=True,
-    prune_to_chea=True,
+    do_prune_to_chea=True,
     save_unfiltered=False,
     network_name="network",
 ):
@@ -102,18 +102,18 @@ def make_network(
     :type tfs: List[str]
     :param outdir: Output directory where network csvs will be saved, defaults to ""
     :type outdir: str or None
-    :param prune: Prune network to remove nodes with no sinks and/or sources and generate a new network file called <network_name>_pruned.csv, defaults to True
-    :type prune: bool, optional
+    :param do_prune: Prune network to remove nodes with no sinks and/or sources and generate a new network file called <network_name>_pruned.csv, defaults to True
+    :type do_prune: bool, optional
     :param prune_sinks: Whether to prune sink nodes from the network (no outgoing nodes), defaults to True
     :type prune_sinks: bool, optional
     :param prune_sources: Whether to prune source nodes the network (no incoming nodes), defaults to True
     :type prune_sources: bool, optional
-    :param prune_info: Whether to prune the network to edges with evidence in more than one database from enrichR and generate a new network file called <network_name>_high_evidence.csv, defaults to True
-    :type prune_info: bool, optional
+    :param do_prune_info: Whether to prune the network to edges with evidence in more than one database from enrichR and generate a new network file called <network_name>_high_evidence.csv, defaults to True
+    :type do_prune_info: bool, optional
     :param prune_self_loops: Whether to prune self-loops in the network (edges where parent node == child node), defaults to True
     :type prune_self_loops: bool, optional
-    :param prune_to_chea: Whether to prune the network to only edges with evidence in ChEA databases and generate a new network file called <network_name>_chea.csv, defaults to True
-    :type prune_to_chea: bool, optional
+    :param do_prune_to_chea: Whether to prune the network to only edges with evidence in ChEA databases and generate a new network file called <network_name>_chea.csv, defaults to True
+    :type do_prune_to_chea: bool, optional
     :param save_unfiltered: Whether to save the unfiltered network before pruning, defaults to False. Note that if all pruning options are False and this is set to False, no network will be saved.
     :type save_unfiltered: bool, optional
     :param network_name: Prefix name of network csv files, defaults to `network`
@@ -149,7 +149,7 @@ def make_network(
             outfile.write("%s,%s\n" % (edge[0], edge[1]))
         outfile.close()
 
-    if prune:
+    if do_prune:
         Gp = prune(G, prune_sinks=prune_sinks, prune_sources=prune_sources)
 
         outfile = open(
@@ -162,7 +162,7 @@ def make_network(
     else:
         Gp = G
 
-    if prune_info:
+    if do_prune_info:
         Gpp = prune_info(Gp, prune_self_loops=prune_self_loops)
 
         outfile = open(
@@ -175,7 +175,7 @@ def make_network(
     else:
         Gpp = Gp
 
-    if prune_to_chea:
+    if do_prune_to_chea:
         Gppp = prune_to_chea(Gpp, prune_self_loops=prune_self_loops)
 
         outfile = open(
