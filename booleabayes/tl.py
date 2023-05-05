@@ -608,7 +608,6 @@ def roc_from_file(
     show_plots=False,
     save=False,
     save_dir=None,
-    fname="",
 ):
     ind = [i for i in np.linspace(0, 1, 50)]
     tpr_all = pd.DataFrame(index=ind)
@@ -623,7 +622,6 @@ def roc_from_file(
             validation,
             node,
             n_thresholds=n_thresholds,
-            fname=fname,
             plot=plot,
             show_plot=show_plots,
             save=save,
