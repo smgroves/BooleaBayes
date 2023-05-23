@@ -375,15 +375,15 @@ def plot_attractors_clustermap(fname, save_dir = "", sep = ","):
     plt.savefig(f"{fname.split('.')[0]}_clustered.pdf", bbox_extra_artists=(lgd,), bbox_inches='tight')
     
 
-def make_jaccard_heatmap(df, cmap = 'viridis',
+def make_jaccard_heatmap(fname, cmap = 'viridis',
                          set_color = dict(),
                          clustered = True,
                          figsize = (10,10), save = False, save_dir = None):
     """    Function to make heatmap of jaccard distance between attractors from dataframe
 
 
-    :param df: Pandas DataFrame of binarized attractors. 
-    :type df: pandas df
+    :param fname: File name for filtered attractors csv. 
+    :type fname: str
     :param cmap: color map, defaults to 'viridis'
     :type cmap: str, optional
     :param set_color: Optional dictionary to include specific color arguments; for example, {"Generalist": "lightgrey"}, defaults to dict()
@@ -398,6 +398,8 @@ def make_jaccard_heatmap(df, cmap = 'viridis',
     :type save_dir: str, optional
     """
     # calculate jaccard distance
+    df = pd.read_csv(fname, sep = ',', header = 0, index_col = 0)
+
     jaccard = 1 - pairwise_distances(df.values, metric = 'jaccard')
     jaccard_df = pd.DataFrame(jaccard, index=df.index, columns=df.index)
     # plot heatmap
@@ -417,6 +419,8 @@ def make_jaccard_heatmap(df, cmap = 'viridis',
     plt.legend(handles, lut, title='Species',
                bbox_to_anchor=(1, 1), bbox_transform=plt.gcf().transFigure, loc='upper right')
     if save:
+        if save_dir is None:
+            save_dir = f"{fname[0:-4]}_jaccard.pdf"
         plt.savefig(save_dir, dpi = 300)
     else:
         plt.show()
