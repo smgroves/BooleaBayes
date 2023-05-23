@@ -119,23 +119,38 @@ def state_bool2idx(state):
         n -= 1
     return idx
 
-# Hamming distance between 2 states
 def hamming(x, y):
+    """ Hamming distance between 2 states
+
+    :param x: State 1 in binary
+    :type x: int
+    :param y: State 2 in binary
+    :type y: int
+    :return: Hamming distance
+    :rtype: int
+    """
     s = 0
     for i, j in zip(x, y):
         if i != j: s += 1
     return s
 
-# Hamming distance between 2 states, where binary states are given by decimal code
 def hamming_idx(x, y, n):
+    """Hamming distance between 2 states, where binary states are given by decimal code
+
+    :param x: State 1 index
+    :type x: str
+    :param y: State 2 index
+    :type y: str
+    :param n: Number of nodes in network
+    :type n: int
+    :return: Hamming distance
+    :rtype: int
+    """
     return hamming(idx2binary(x, n), idx2binary(y, n))
 
 def r2(x, y):
     return stats.pearsonr(x, y)[0] ** 2
 
-# Split a dataset into testing and training dataset
-# save dir = directory to save the split data 
-# fname = str filename to append to default save file name
 def split_train_test(data, data_t1, clusters, save_dir, fname=None, random_state = 1234):
     """Split a dataset into testing and training dataset
 
@@ -185,6 +200,57 @@ def split_train_test(data, data_t1, clusters, save_dir, fname=None, random_state
     clusters_test.to_csv(f'{save_dir}/clusters_test_{fname}.csv')
 
     return data, test, data_t1, test_t1, clusters_train, clusters_test
+
+def split_train_test_crossval(data, data_t1, clusters, save_dir, folds = 5, fname=None, random_state=1234):
+    """Split a dataset into testing and training dataset with multiple folds (e.g. for 5-fold validation)
+
+    :param data: Dataset or first timepoint of temporal dataset to be split into training/testing datasets
+    :type data: Pandas dataframe
+    :param data_t1: Second timepoint of temporal dataset, optional
+    :type data_t1: {Pandas dataframe, None}
+    :param clusters: Cluster assignments for each sample; see ut.get_clusters() to generate
+    :type clusters: Pandas DataFrame
+    :param save_dir: File path for saving training and testing sets
+    :type save_dir: str
+    :param fname: Suffix to add to file names for saving, defaults to None
+    :type fname: str, optional
+    :return: None
+    """
+    df = list(data.index)
+
+    # print("Splitting into train and test datasets...")
+    kf = ms.StratifiedKFold(n_splits=folds, random_state=random_state, shuffle=True)
+
+    idx = 0
+    for train_index, test_index in kf.split(df, clusters.loc[df, 'class']):
+        # train_index, test_index = next(kf.split(df, clusters.loc[df, 'class']))
+
+        T = {'test_cellID': [df[i] for i in test_index], 'test_index': test_index,
+             'train_index': train_index,
+             'train_cellID': [df[i] for i in train_index]}
+
+        with open(f'{save_dir}/test_train_indices_{fname}_{idx}.p', 'wb') as f:
+            pickle.dump(T, f)
+
+        test = data.loc[T['test_cellID']].copy()
+        train = data.loc[T['train_cellID']].copy()
+        test.to_csv(f'{save_dir}/test_t0_{fname}_{idx}.csv')
+        train.to_csv(f'{save_dir}/train_t0_{fname}_{idx}.csv')
+
+        if data_t1 is not None:
+            test_t1 = data_t1.loc[T['test_cellID']].copy()
+            data_t1 = data_t1.loc[T['train_cellID']].copy()
+            test_t1.to_csv(f'{save_dir}/test_t1_{fname}_{idx}.csv')
+            data_t1.to_csv(f'{save_dir}/train_t1_{fname}_{idx}.csv')
+        else:
+            test_t1 = None
+            data_t1 = None
+
+        clusters_train = clusters.loc[T['train_cellID']]
+        clusters_test = clusters.loc[T['test_cellID']]
+        clusters_train.to_csv(f'{save_dir}/clusters_train_{fname}_{idx}.csv')
+        clusters_test.to_csv(f'{save_dir}/clusters_test_{fname}_{idx}.csv')
+        idx += 1
 
 # Given a graph calculate the graph condensation (all nodes are reduced to strongly
 # connected components). Returns the condensation graph, a dictionary mapping
