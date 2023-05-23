@@ -9,6 +9,72 @@ from graph_tool import all as gt
 from graph_tool.topology import label_components
 import math
 import json
+from umap import UMAP
+import seaborn as sns
+
+def make_color_map(attractors, palette = 'hls', set_colors = None):
+    """
+    Function to make a matplotlib color map from a list of strings and the matplotlib default color palette
+    Parameters
+    ----------
+    list_of_strings : list
+        List of strings
+    palette : string
+        Matplotlib default color palette
+    set_colors : dictionary
+        Dictionary of colors for each attractor if user wants to specify particular color
+    Returns
+    -------
+    cmap : dictionary
+        Dictionary of colors for each string
+    """
+    # default matplotlib color palette
+    palette = sns.color_palette(palette, n_colors=len(attractors))
+    palette = palette.as_hex()
+    cmap = {}
+    for i, s in enumerate(attractors):
+        if set_colors is not None:
+            if s in set_colors:
+                cmap[s] = set_colors[s]
+            else:
+                cmap[s] = palette[i]
+    return cmap
+
+
+def binarized_umap_transform(binarized_data):
+    """
+    Function to perform dimensionality reduction on binarized data using UMAP
+    :param binarized_data:
+    :return:
+    """
+
+    # Recalculate the UMAP
+    umap = UMAP(n_components=2, metric='jaccard')
+    umap_embedding = umap.fit_transform(binarized_data.values)
+
+    return umap_embedding, umap
+
+def binarized_data_dict_to_binary_df(binarized_data, nodes):
+    """
+    Function to convert a dictionary of binarized data to a binary dataframe
+    Parameters
+    ----------
+    binarized_data : dictionary
+        Dictionary of binarized data
+    nodes : list
+        List of nodes in the transcription factor network
+    Returns
+    -------
+    binary_df : dataframe
+        Binary dataframe of binarized data
+    """
+    df = pd.DataFrame(columns = nodes)
+    for k in binarized_data.keys():
+        att = [idx2binary(x, len(nodes)) for x in binarized_data[k]]
+        for a in att:
+            att_list = [int(i) for i in a]
+            df = df.append(pd.DataFrame(att_list, index = nodes, columns = [k]).T)
+    return df
 
 
 def idx2binary(idx, n):

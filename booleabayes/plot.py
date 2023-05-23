@@ -15,6 +15,8 @@ import scipy.stats as ss
 import glob
 import networkx as nx
 from graph_tool import all as gt
+from sklearn.metrics import pairwise_distances
+from umap import UMAP
 
 
 ### ------------ ACCURACY PLOTS ------------ ###
@@ -353,6 +355,53 @@ def plot_attractors(fname, save_dir="", sep=","):
         yticklabels=True,
     )
     plt.savefig(f"{save_dir}/{fname.split('.')[0]}.pdf")
+
+def make_jaccard_heatmap(df, cmap = 'viridis',
+                         set_color = dict(),
+                         clustered = True,
+                         figsize = (10,10), save = False, save_dir = None):
+    """    Function to make heatmap of jaccard distance between attractors from dataframe
+
+
+    :param df: Pandas DataFrame of binarized attractors. 
+    :type df: pandas df
+    :param cmap: color map, defaults to 'viridis'
+    :type cmap: str, optional
+    :param set_color: Optional dictionary to include specific color arguments; for example, {"Generalist": "lightgrey"}, defaults to dict()
+    :type set_color: dict, optional
+    :param clustered: Whether to cluster the rows and colors or leave in the original order without dendrograms, defaults to True
+    :type clustered: bool, optional
+    :param figsize: Figure size, defaults to (10,10)
+    :type figsize: tuple, optional
+    :param save: Whether to save the figure or show, defaults to False
+    :type save: bool, optional
+    :param save_dir: Directory to save figure, defaults to None
+    :type save_dir: str, optional
+    """
+    # calculate jaccard distance
+    jaccard = 1 - pairwise_distances(df.values, metric = 'jaccard')
+    jaccard_df = pd.DataFrame(jaccard, index=df.index, columns=df.index)
+    # plot heatmap
+    plt.figure(figsize = figsize)
+    lut = dict(zip(sorted(df.index.unique()), sns.color_palette("hls", len(df.index.unique()))))
+    lut.update(set_color)
+    row_colors = df.index.map(lut)
+    if clustered:
+        g = sns.clustermap(jaccard_df, row_colors=row_colors, col_colors = row_colors, cmap = cmap,
+                            yticklabels = False, xticklabels = False)
+    else:
+        g = sns.clustermap(jaccard_df, row_colors=row_colors, col_colors = row_colors, cmap = cmap,
+                       row_cluster = False, col_cluster = False,yticklabels = False, xticklabels = False)
+    g.fig.suptitle("Jaccard Similarity Between Attractors")
+    plt.subplots_adjust(top=0.95)
+    handles = [Patch(facecolor=lut[name]) for name in lut]
+    plt.legend(handles, lut, title='Species',
+               bbox_to_anchor=(1, 1), bbox_transform=plt.gcf().transFigure, loc='upper right')
+    if save:
+        plt.savefig(save_dir, dpi = 300)
+    else:
+        plt.show()
+
 
 
 ### ------------ RULE PLOTS ------------ ###
@@ -814,6 +863,298 @@ def plot_stability(attractor_dict, walks_dir, palette = sns.color_palette("tab20
         plt.close()
     return df
 
+# This function will visualize random walks starting from a single attractor (each attractor in starting_attractors, which is a key in attractor_dict) and plot the lineplots of the walks. You can specify how many walks to plot.
+
+def plot_random_walks(walk_path, starting_attractors, ATTRACTOR_DIR, nodes,
+                      perturb = None,
+                      num_walks = 20,
+                      binarized_data = None,
+                      save_as = "",
+                      show_lineplots = True,
+                      fit_to_data = True,
+                      plot_vs = False,
+                      show = False,
+                      reduction = 'pca',
+                      set_colors=None):
+    """
+    Visualization of random walks with and without perturbations
+
+    :param walk_path: file path to the walks folder for plotting (usually long_walks subfolder)
+    :param starting_attractors: name of the attractors to start the walk from (key in attractor_dict)
+    :param perturb: name of perturbation to plot (suffix of walk results csv files)
+    :param ATTRACTOR_DIR: file path to the attractors folder
+    :param nodes: list of nodes in the network
+    :param num_walks: number of walks to plot with lines and kde plot
+    :param binarized_data: if fit_to_data is True, this is the binarized data as a dictionary 
+    :param save_as: suffix on plot file name
+    :param show_lineplots: if true, plot the lineplots of the walks
+    :param fit_to_data: if true, fit the pca to the data instead of only the attractors
+    :param plot_vs: if true, plot both the unperturbed and perturbed plot side by side. Note that perturb must be specified.
+    :param show: if true, show the plot
+    :param reduction: dimensionality reduction method to use. Options are 'pca' and 'umap'
+    :param set_colors: dictionary of colors to use for each attractor type (key in attractor_dict); otherwise default seaborn palette is used.
+        Can specify single attractor-color mapping to override default palette for that attractor, for example, {'Generalist': 'grey'}
+    :return:
+    """
+    attractor_dict = {}
+    attractor_bool_dict = {}
+    att_list = []
+    attr_filtered = pd.read_csv(f'{ATTRACTOR_DIR}/attractors_filtered.txt', sep = ',', header = 0, index_col = 0)
+    n = len(attr_filtered.columns)
+
+    for i,r in attr_filtered.iterrows():
+        attractor_dict[i] = []
+        attractor_bool_dict[i] = []
+    for i,r in attr_filtered.iterrows():
+        attractor_dict[i].append(ut.state_bool2idx(list(r)))
+        attractor_bool_dict[i].append(int(ut.idx2binary(ut.state_bool2idx(list(r)), n)))
+        att_list.append(int(ut.idx2binary(ut.state_bool2idx(list(r)), n)))
+
+    attr_color_map = ut.make_color_map(attractor_dict.keys(), set_colors=set_colors)
+
+    if reduction == 'pca':
+        pca = PCA(n_components=2)
+        if fit_to_data:
+            binarized_data_df = ut.binarized_data_dict_to_binary_df(binarized_data, nodes)
+            binarized_data_df_new = pca.fit_transform(binarized_data_df)
+            att_new = pca.transform(attr_filtered)
+        else:
+            att_new = pca.fit_transform(attr_filtered)
+        comp = pd.DataFrame(pca.components_, index=[0, 1], columns=nodes)
+        comp = comp.T
+
+        print("Component 1 max and min: ", comp[0].idxmax(), comp[0].max(), comp[0].idxmin(), comp[0].min())
+        print("Component 2 max and min: ", comp[1].idxmax(), comp[1].max(), comp[1].idxmin(), comp[1].min())
+        print("Explained variance: ", pca.explained_variance_ratio_)
+        print("Explained variance sum: ", pca.explained_variance_ratio_.sum())
+
+    elif reduction == 'umap':
+        umap = UMAP(n_components=2, metric='jaccard')
+        if fit_to_data:
+            binarized_data_df = ut.binarized_data_dict_to_binary_df(binarized_data, nodes)
+            binarized_data_df_new = umap.fit_transform(binarized_data_df.values)
+            att_new = umap.transform(attr_filtered)
+        else:
+            att_new = umap.fit_transform(attr_filtered)
+
+    data = pd.DataFrame(att_new, columns=['0', '1'])
+    data['color'] = [attr_color_map[i] for i in attr_filtered.index]
+    # sns.scatterplot(data = data, x = '0',y = '1', hue = 'color')
+
+    for start_idx in attractor_dict[starting_attractors]:
+        print(start_idx)
+        if plot_vs:
+            if perturb is None:
+                raise ValueError("If plot_vs is true, perturb must be specified.")
+
+            fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(24, 10), dpi=300)
+            ax1.scatter(x=data['0'], y=data['1'], c=data['color'], s=100, edgecolors='k', zorder=4)
+            ax2.scatter(x=data['0'], y=data['1'], c=data['color'], s=100, edgecolors='k', zorder=4)
+
+            # sns.scatterplot(data = data, x = '0',y = '2', hue = 'color')
+            # plt.show()
+
+            legend_elements = []
+
+            for i in attr_color_map.keys():
+                legend_elements.append(Patch(facecolor=attr_color_map[i], label=i))
+
+            ax1.legend(handles=legend_elements, loc='best')
+            ax2.legend(handles=legend_elements, loc='best')
+
+            att2_list = att_list.copy()
+            data_walks = pd.DataFrame(columns=['0', '1'])
+            try:
+                print("Plotting walks without perturbation")
+                with open(f"{walk_path}/{start_idx}/results.csv", 'r') as file:
+                    line = file.readline()
+                    cnt = 1
+                    while line:
+                        if cnt == 1: pass
+                        walk = line.strip()
+                        walk = walk.replace('[', '').replace(']', '').split(',')
+                        walk_states = [ut.idx2binary(int(i), n) for i in walk]
+                        walk_list = []
+                        for i in walk_states:
+                            walk_list.append([int(j) for j in i])
+                            att2_list.append([int(j) for j in i])
+                        if reduction == 'pca':
+                            walk_new = pca.transform(walk_list)
+                        elif reduction == 'umap':
+                            walk_new = umap.transform(walk_list)
+                        data_walk = pd.DataFrame(walk_new, columns=['0', '1'])
+                        data_walks = data_walks.append(data_walk)
+                        data_walk['color'] = [(len(data_walk.index) - i) / len(data_walk.index) for i in data_walk.index]
+                        # plt.scatter(x = data_walk['0'], y = data_walk['1'], c = data_walk['color'],
+                        #             cmap = 'Blues', s = 20, edgecolors='k', zorder = 3)
+                        if show_lineplots:
+                            sns.lineplot(x=data_walk['0'], y=data_walk['1'], lw=.3, dashes=True, legend=False,
+                                     alpha=0.4, zorder=2, color = 'black', ax = ax1)
+                        cnt += 1
+                        line = file.readline()
+                        if cnt == num_walks: break
+                sns.kdeplot(x=data_walks['0'], y=data_walks['1'], shade=True, thresh=0.05, zorder=1, n_levels=20, cbar=True,
+                            color=attr_color_map[starting_attractors], ax = ax1)
+
+                #reset data_walks for second half of plot
+                data_walks = pd.DataFrame(columns=['0', '1'])
+
+                print("Plotting walks with perturbation")
+                with open(f"{walk_path}/{start_idx}/results_{perturb}.csv", 'r') as file:
+                    line = file.readline()
+                    cnt = 1
+                    while line:
+                        if cnt == 1: pass
+                        walk = line.strip()
+                        walk = walk.replace('[', '').replace(']', '').split(',')
+                        walk_states = [ut.idx2binary(int(i), n) for i in walk]
+                        walk_list = []
+                        for i in walk_states:
+                            walk_list.append([int(j) for j in i])
+                            att2_list.append([int(j) for j in i])
+                        if reduction == 'pca':
+                            walk_new = pca.transform(walk_list)
+                        elif reduction == 'umap':
+                            walk_new = umap.transform(walk_list)
+
+                        data_walk = pd.DataFrame(walk_new, columns=['0', '1'])
+                        data_walks = data_walks.append(data_walk)
+                        data_walk['color'] = [(len(data_walk.index) - i) / len(data_walk.index) for i in data_walk.index]
+                        # plt.scatter(x = data_walk['0'], y = data_walk['1'], c = data_walk['color'],
+                        #             cmap = 'Blues', s = 20, edgecolors='k', zorder = 3)
+                        if show_lineplots:
+                            sns.lineplot(x=data_walk['0'], y=data_walk['1'], lw=.3, dashes=True, legend=False,
+                                     alpha=0.4, zorder=2, color = 'black', ax = ax2)
+                        cnt += 1
+                        line = file.readline()
+                        if cnt == num_walks: break
+
+                sns.kdeplot(x=data_walks['0'], y=data_walks['1'], shade=True, thresh=0.05, zorder=1, n_levels=20, cbar=True,
+                            color=attr_color_map[starting_attractors], ax = ax2)
+
+            except:
+                continue
+
+            # title for left and right plots
+            if perturb.split("_")[1] == 'kd':
+                perturbation_name = f"{perturb.split('_')[0]} Knockdown"
+            elif perturb.split("_")[1] == 'act':
+                perturbation_name = f"{perturb.split('_')[0]} Activation"
+
+            archetype_name = f"Archetype {starting_attractors.split('_')[1]}"
+
+            plt.suptitle(f'{str(num_walks)} Walks from {archetype_name} \n Starting state: {start_idx}  with or without perturbation: {perturbation_name}',
+                         size=16)
+            ax1.set(title = "No Perturbation")
+            ax2.set(title = "With Perturbation")
+
+            # Defining custom 'xlim' and 'ylim' values.
+            custom_xlim = (data['0'].min() - 0.3, data['0'].max() + 0.3)
+            custom_ylim = (data['1'].min() - 0.3, data['1'].max() + 0.3)
+
+            if reduction == 'pca':
+                plt.setp([ax1, ax2], xlim=custom_xlim, ylim=custom_ylim, xlabel='PC 1', ylabel='PC 2')
+            elif reduction == 'umap':
+                plt.setp([ax1, ax2], xlim=custom_xlim, ylim=custom_ylim, xlabel='UMAP 1', ylabel='UMAP 2')
+            # Setting the values for all axes.
+            if show:
+                plt.show()
+            else:
+                plt.savefig(f"{walk_path}/{start_idx}/walks_{perturb}_{starting_attractors}{save_as}.png")
+
+        else:
+            for start_idx in attractor_dict[starting_attractors]:
+                plt.figure(figsize=(12, 10), dpi=300)
+                plt.scatter(x=data['0'], y=data['1'], c=data['color'], s=100, edgecolors='k', zorder=4)
+                legend_elements = []
+                for i in attr_color_map.keys():
+                    legend_elements.append(Patch(facecolor=attr_color_map[i], label=i))
+                plt.legend(handles=legend_elements, loc='best')
+
+                att2_list = att_list.copy()
+                data_walks = pd.DataFrame(columns=['0', '1'])
+
+                try:
+                    if perturb is not None:
+                        with open(f"{walk_path}/{start_idx}/results_{perturb}.csv", 'r') as file:
+                            line = file.readline()
+                            cnt = 1
+                            while line:
+                                if cnt == 1: pass
+                                walk = line.strip()
+                                walk = walk.replace('[', '').replace(']', '').split(',')
+                                walk_states = [ut.idx2binary(int(i), n) for i in walk]
+                                walk_list = []
+                                for i in walk_states:
+                                    walk_list.append([int(j) for j in i])
+                                    att2_list.append([int(j) for j in i])
+                                if reduction == 'pca':
+                                    walk_new = pca.transform(walk_list)
+                                elif reduction == 'umap':
+                                    walk_new = umap.transform(walk_list)
+                                data_walk = pd.DataFrame(walk_new, columns=['0', '1'])
+                                data_walks = data_walks.append(data_walk)
+                                data_walk['color'] = [(len(data_walk.index) - i) / len(data_walk.index) for i in data_walk.index]
+                                # plt.scatter(x = data_walk['0'], y = data_walk['1'], c = data_walk['color'],
+                                #             cmap = 'Blues', s = 20, edgecolors='k', zorder = 3)
+                                if show_lineplots:
+                                    sns.lineplot(x=data_walk['0'], y=data_walk['1'], lw=.3, dashes=True, legend=False,
+                                             alpha=0.4, zorder=2, color = 'black')
+                                cnt += 1
+                                line = file.readline()
+                                if cnt == num_walks: break
+                    else:
+                        with open(f"{walk_path}/{start_idx}/results.csv", 'r') as file:
+                            line = file.readline()
+                            cnt = 1
+                            while line:
+                                if cnt == 1: pass
+                                walk = line.strip()
+                                walk = walk.replace('[', '').replace(']', '').split(',')
+                                walk_states = [ut.idx2binary(int(i), n) for i in walk]
+                                walk_list = []
+                                for i in walk_states:
+                                    walk_list.append([int(j) for j in i])
+                                    att2_list.append([int(j) for j in i])
+                                if reduction == 'pca':
+                                    walk_new = pca.transform(walk_list)
+                                elif reduction == 'umap':
+                                    walk_new = umap.transform(walk_list)
+                                data_walk = pd.DataFrame(walk_new, columns=['0', '1'])
+                                data_walks = data_walks.append(data_walk)
+                                data_walk['color'] = [(len(data_walk.index) - i) / len(data_walk.index) for i in data_walk.index]
+                                # plt.scatter(x = data_walk['0'], y = data_walk['1'], c = data_walk['color'],
+                                #             cmap = 'Blues', s = 20, edgecolors='k', zorder = 3)
+                                if show_lineplots:
+                                    sns.lineplot(x=data_walk['0'], y=data_walk['1'], lw=.3, dashes=True, legend=False,
+                                             alpha=0.4, zorder=2, color = 'black')
+                                cnt += 1
+                                line = file.readline()
+                                if cnt == num_walks: break
+
+                except:
+                    continue
+
+                sns.kdeplot(x = data_walks['0'], y = data_walks['1'], shade=True, thresh = 0.05,zorder=1, n_levels=20,cbar = True,
+                            color = attr_color_map[starting_attractors])
+                if perturb is not None:
+                    plt.title(f'{num_walks} Walks from {starting_attractors} starting state: {start_idx} /n with perturbation: {perturb}')
+                else:
+                    plt.title(f'{num_walks} Walks from {starting_attractors} starting state: {start_idx}')
+                plt.xlim(data['0'].min() - 0.3, data['0'].max() + 0.3)
+                plt.ylim(data['1'].min() - 0.3, data['1'].max() + 0.3)
+                if reduction == 'pca':
+                    plt.xlabel('PC 1')
+                    plt.ylabel('PC 2')
+                elif reduction == 'umap':
+                    plt.xlabel('UMAP 1')
+                    plt.ylabel('UMAP 2')
+                if show:
+                    plt.show()
+                else:
+                    plt.savefig(f"{walk_path}/{start_idx}/singleplot_walks_{perturb}_{starting_attractors}{save_as}.png")
+
+
 # att_list = list of attractor states
 # phenotypes = list of phenotypes
 # phenotype_color = should be st by the function; user can pass in customPallete instead
@@ -830,6 +1171,25 @@ def pca_plot_paths(
     pca_path_reduce=False,
     walk_to_basin=False,
 ):
+    """DO NOT USE. STILL UNDER DEVELOPMENT. Use plot_random_walks instead.
+
+    :param att_list: _description_
+    :type att_list: _type_
+    :param phenotypes: _description_
+    :type phenotypes: _type_
+    :param phenotype_color: _description_
+    :type phenotype_color: _type_
+    :param radius: _description_
+    :type radius: _type_
+    :param start_idx: _description_
+    :type start_idx: _type_
+    :param num_paths: _description_, defaults to 100
+    :type num_paths: int, optional
+    :param pca_path_reduce: _description_, defaults to False
+    :type pca_path_reduce: bool, optional
+    :param walk_to_basin: _description_, defaults to False
+    :type walk_to_basin: bool, optional
+    """
     pca = PCA(n_components=2)
     att_new = pca.fit_transform(att_list)
     data = pd.DataFrame(att_new, columns=["0", "1"])
@@ -1021,6 +1381,19 @@ def pca_plot_paths(
 
 # Not sure if this needs to be included
 def check_middle_stop(start_idx, basin, check_stops, radius=2):
+    """DO NOT USE. STILL UNDER DEVELOPMENT.
+
+    :param start_idx: _description_
+    :type start_idx: _type_
+    :param basin: _description_
+    :type basin: _type_
+    :param check_stops: _description_
+    :type check_stops: _type_
+    :param radius: _description_, defaults to 2
+    :type radius: int, optional
+    :return: _description_
+    :rtype: _type_
+    """
     with open(
         op.join(
             dir_prefix,
