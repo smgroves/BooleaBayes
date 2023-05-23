@@ -356,7 +356,7 @@ def plot_attractors(fname, save_dir="", sep=","):
     )
     plt.savefig(f"{save_dir}/{fname.split('.')[0]}.pdf")
 
-def plot_attractors_clustermap(fname, save_dir = "", sep = ","):
+def plot_attractors_clustermap(fname, save_dir = None, sep = ",", save = True):
     att = pd.read_table(fname, sep=sep, header=0, index_col=0)
     att = att.transpose()
     plt.figure(figsize=(20, 12))
@@ -372,8 +372,12 @@ def plot_attractors_clustermap(fname, save_dir = "", sep = ","):
         markers.append(plt.Line2D([0,0],[0,0],color=lut[i], marker='o', linestyle=''))
     lgd = plt.legend(markers, lut.keys(), numpoints=1, loc = 'upper left', bbox_to_anchor=(1.05, 1.0))
     plt.tight_layout()
-    plt.savefig(f"{fname.split('.')[0]}_clustered.pdf", bbox_extra_artists=(lgd,), bbox_inches='tight')
-    
+    if save:
+        if save_dir is None:
+            save_dir = f"{fname[0:-4]}_clustered.pdf"
+        plt.savefig(save_dir, bbox_extra_artists=(lgd,), bbox_inches='tight')
+    else:
+        plt.show()
 
 def make_jaccard_heatmap(fname, cmap = 'viridis',
                          set_color = dict(),
