@@ -25,6 +25,7 @@ install_requires = [
     "click",
     "magic-impute",
     "networkx",
+    'statsmodels'
 ]
 
 doc_requires = [
@@ -45,7 +46,7 @@ readme = open("README.rst").read()
 
 setup(
     name="booleabayes",
-    version="0.1.10",
+    version="0.1.11",
     description="A suite for network inference from transcriptomics data",
     long_description=readme,
     long_description_content_type="text/x-rst",

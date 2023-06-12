@@ -36,7 +36,7 @@ def plot_sklearn_summ_stats(summary_stats, VAL_DIR, fname = ""):
         val = row.value
         if (val > outlier_top_lim[variable]) or (val < outlier_bottom_lim[variable]):
             print(val, row.gene)
-            plt.annotate(s = row.gene, xy = (col_dict[variable]+0.1,val), fontsize = 8)
+            plt.annotate(row.gene, xy = (col_dict[variable]+0.1,val), fontsize = 8)
     plt.xticks(rotation = 45, ha = 'right')
     plt.xlabel("Model Metric")
     plt.ylabel("Score")
