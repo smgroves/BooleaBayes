@@ -633,7 +633,7 @@ def roc_from_file(
     return tpr_all, fpr_all, area_all
 
 
-def get_sklearn_metrics(VAL_DIR, plot_cm = True, show = False, save = True, save_stats = True):
+def get_sklearn_metrics(VAL_DIR, plot_cm = True, show = False, save = True, save_stats = True, verbose = False):
     files = glob.glob(f"{VAL_DIR}/accuracy_plots/*.csv")
     summary_stats = pd.DataFrame(columns = ['gene','accuracy','balanced_accuracy_score','f1','roc_auc_score', "precision",
                                                 "recall", "explained_variance", 'max_error', 'r2','log-loss'])
@@ -643,37 +643,48 @@ def get_sklearn_metrics(VAL_DIR, plot_cm = True, show = False, save = True, save
     else:
 
         for f in files:
-            val_df = pd.read_csv(f, header = 0, index_col=0)
-            val_df['actual_binary'] = [{True:1, False:0}[x] for x in val_df['actual']> 0.5]
-            val_df['predicted_binary'] = [{True:1, False:0}[x] for x in val_df['predicted']> 0.5]
-            gene = f.split("/")[-1].split("_")[0]
-            #classification stats
-            acc = accuracy_score(val_df['actual_binary'], val_df['predicted_binary'])
-            bal_acc = balanced_accuracy_score(val_df['actual_binary'], val_df['predicted_binary'])
-            f1 = f1_score(val_df['actual_binary'], val_df['predicted_binary'])
-            prec = precision_score(val_df['actual_binary'], val_df['predicted_binary'])
-            rec = recall_score(val_df['actual_binary'], val_df['predicted_binary'])
+                val_df = pd.read_csv(f, header = 0, index_col=0)
+                val_df['actual_binary'] = [{True:1, False:0}[x] for x in val_df['actual']> 0.5]
+                val_df['predicted_binary'] = [{True:1, False:0}[x] for x in val_df['predicted']> 0.5]
+                gene = f.split("/")[-1].split("_")[0]
+                if verbose: print(gene)
 
-            #regression stats
-            roc_auc = roc_auc_score(val_df['actual_binary'], val_df['predicted'])
-            expl_var = explained_variance_score(val_df['actual'], val_df['predicted'])
-            max_err = max_error(val_df['actual'], val_df['predicted'])
-            r2 = r2_score(val_df['actual'], val_df['predicted'])
-            ll = log_loss(val_df['actual_binary'], val_df['predicted'])
+                #classification stats
+                acc = accuracy_score(val_df['actual_binary'], val_df['predicted_binary'])
+                bal_acc = balanced_accuracy_score(val_df['actual_binary'], val_df['predicted_binary'])
+                f1 = f1_score(val_df['actual_binary'], val_df['predicted_binary'])
+                prec = precision_score(val_df['actual_binary'], val_df['predicted_binary'])
+                rec = recall_score(val_df['actual_binary'], val_df['predicted_binary'])
 
-            summary_stats = summary_stats.append(pd.Series([gene, acc, bal_acc,f1,roc_auc,prec,rec,expl_var,max_err,r2,ll],
-                                                        index=summary_stats.columns),ignore_index=True)
-            if plot_cm:
-                plt.figure()
-                cm = confusion_matrix(val_df['actual_binary'], val_df['predicted_binary'])
-                disp = ConfusionMatrixDisplay(confusion_matrix=cm)
-                disp.plot(cmap = "Blues")
-                plt.title(gene)
-                if show:
-                    plt.show()
-                if save:
-                    plt.savefig(f"{VAL_DIR}/accuracy_plots/{gene}_confusion_matrix.pdf")
-                    plt.close()
+                #regression stats
+                try:
+                    roc_auc = roc_auc_score(val_df['actual_binary'], val_df['predicted'])
+                except ValueError:
+                    print(f"ValueError for {gene}. Only one class present in y_true. ROC AUC score is not defined in that case.")
+                    roc_auc = np.nan
+                expl_var = explained_variance_score(val_df['actual'], val_df['predicted'])
+                max_err = max_error(val_df['actual'], val_df['predicted'])
+                r2 = r2_score(val_df['actual'], val_df['predicted'])
+                try:
+                    ll = log_loss(val_df['actual_binary'], val_df['predicted'])
+                except ValueError:
+                    print(f"ValueError for {gene}: y_true contains only one label (0). Log-loss is not defined in that case.")
+                    ll = np.nan
+
+                summary_stats = summary_stats.append(pd.Series([gene, acc, bal_acc,f1,roc_auc,prec,rec,expl_var,max_err,r2,ll],
+                                                            index=summary_stats.columns),ignore_index=True)
+                if plot_cm:
+                    plt.figure()
+                    cm = confusion_matrix(val_df['actual_binary'], val_df['predicted_binary'])
+                    disp = ConfusionMatrixDisplay(confusion_matrix=cm)
+                    disp.plot(cmap = "Blues")
+                    plt.title(gene)
+                    if show:
+                        plt.show()
+                    if save:
+                        plt.savefig(f"{VAL_DIR}/accuracy_plots/{gene}_confusion_matrix.pdf")
+                        plt.close()
+
         
         summary_stats = summary_stats.sort_values('gene').reset_index().drop("index",axis = 1)
 
