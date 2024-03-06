@@ -486,7 +486,7 @@ def random_walks_parallel(
     num_cores = mp.cpu_count()
     cpus_use = int(cpu_usage * num_cores)
     print(f"Using {cpus_use} cores to run random walks in parallel. ")
-    # print("Warning: if running this function on Windows, only use within __main__.")
+    print("Warning: Only use this function within __main__.")
 
     # List of attractor dicts with one value for one key
     list_attr_dict = []
