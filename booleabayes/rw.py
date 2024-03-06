@@ -483,7 +483,8 @@ def random_walks_parallel(
 
     num_cores = mp.cpu_count()
     cpus_use = int(cpu_usage * num_cores)
-    print("Warning: if running this function on Windows, only use within __main__.")
+    print(f"Using {cpus_use} cores to run random walks in parallel. ")
+    # print("Warning: if running this function on Windows, only use within __main__.")
 
     # List of attractor dicts with one value for one key
     list_attr_dict = []
@@ -494,7 +495,7 @@ def random_walks_parallel(
     # Step 1: Init multiprocessing.Pool()
     pool = mp.Pool(cpus_use)
 
-    # Step 2: `pool.apply` the `howmany_within_range()`
+    # Step 2: `pool.apply` the random walks function
     results = [
         pool.apply(
             random_walks,
