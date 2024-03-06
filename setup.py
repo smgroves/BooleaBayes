@@ -46,7 +46,7 @@ readme = open("README.rst").read()
 
 setup(
     name="booleabayes",
-    version="0.1.13",
+    version="0.1.14",
     description="A suite for network inference from transcriptomics data",
     long_description=readme,
     long_description_content_type="text/x-rst",

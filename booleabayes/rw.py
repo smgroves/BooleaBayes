@@ -436,6 +436,7 @@ def random_walks_parallel(
     overwrite_walks=True,
     overwrite_perturbations=True,
     cpu_usage=0.5,
+    cpus = None,
     verbose = 1
 ):
     """
@@ -482,9 +483,11 @@ def random_walks_parallel(
     -------
     None
     """
-
-    num_cores = mp.cpu_count()
-    cpus_use = int(cpu_usage * num_cores)
+    if cpus is not None:
+        cpus_use = cpus
+    else:
+        num_cores = mp.cpu_count()
+        cpus_use = int(cpu_usage * num_cores)
     print(f"Using {cpus_use} cores to run random walks in parallel. ")
     print("Warning: Only use this function within __main__.")
 
