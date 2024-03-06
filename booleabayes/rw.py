@@ -12,7 +12,7 @@ from graph_tool.topology import label_components
 from collections import Counter
 import random
 import multiprocessing as mp
-
+from functools import partial
 
 def random_walks(
     attractor_dict,
@@ -32,6 +32,7 @@ def random_walks(
     basin=0,
     overwrite_walks=True,
     overwrite_perturbations=True,
+    verbose = 2
 ):
     """
     Wrapper function to perform random walks.
@@ -100,7 +101,7 @@ def random_walks(
     if stability:
         # Make sure radius is a list, if not use default option
         if type(radius) != list:
-            print("Performing stability with default list: [1,2,3,4,5,6,7,8]")
+            if verbose > 0: print("Performing stability with default list: [1,2,3,4,5,6,7,8]")
             radius = [1, 2, 3, 4, 5, 6, 7, 8]
     # If not doing stability, make the integer radius a list so it's iterable
     else:
@@ -108,11 +109,11 @@ def random_walks(
 
     # Run starting from steady_states
     for k in attractor_dict.keys():
-        print(k)
+        if verbose > 0: print(k)
         steady_states = attractor_dict[k]
         # Run random walk for every radius in list or the single integer
         for radius_ in radius:
-            print("Radius: ", radius_)
+            if verbose == 2: print("Radius: ", radius_)
             for start_idx in steady_states:
                 switch_counts_0 = dict()
                 for node in nodes:
@@ -142,13 +143,13 @@ def random_walks(
                 # Perform walks without perturbations first
                 # Print progress of random walk every 10% of the way through iters
                 prog = 0
-                print("...Random walks for", start_idx)
+                if verbose > 0: print("...Random walks for", start_idx)
 
                 for iter_ in range(iters):
                     # print("Iteration:", iter_)
                     # print("Progress:")
                     if iter_ % 100 == 0:
-                        print(str(iter_ / iters * 100) + "%")
+                        if verbose == 2: print(str(iter_ / iters * 100) + "%")
                     #     prog = iter_ / 10
                     #     print("Progress: ", prog)
 
@@ -213,7 +214,7 @@ def random_walks(
                             continue
                     # Run all possible single perturbations
                     if len(on_nodes) == 0 and len(off_nodes) == 0:
-                        print("Perturbations for ", start_idx)
+                        if verbose > 0: print("...Perturbations for ", start_idx)
                         try:
                             os.mkdir(op.join(save_dir, "perturbations/%d" % start_idx))
                         except FileExistsError:
@@ -236,7 +237,7 @@ def random_walks(
                             expt = "%s_activate" % expt_node
                             for iter_ in range(iters):
                                 if iter_ % 100 == 0:
-                                    print(str(iter_ / iters * 100) + "%")
+                                    if verbose == 2: print(str(iter_ / iters * 100) + "%")
                                 # To perturb more than one node, add to on_nodes or off_nodes
                                 if reach_or_leave == "leave":
                                     (
@@ -283,7 +284,7 @@ def random_walks(
                             expt = "%s_knockdown" % expt_node
                             for iter_ in range(iters):
                                 if iter_ % 100 == 0:
-                                    print(str(iter_ / iters * 100) + "%")
+                                    if verbose == 2: print(str(iter_ / iters * 100) + "%")
                                 (
                                     walk_off,
                                     counts_off,
@@ -363,7 +364,7 @@ def random_walks(
                 prog = 0
                 for iter_ in range(iters):
                     if iter_ % 100 == 0:
-                        print(str(iter_ / iters * 100) + "%")
+                        if verbose == 2: print(str(iter_ / iters * 100) + "%")
 
                     # 'counts': histogram of walk
                     # 'switches': count which TFs flipped
@@ -435,6 +436,7 @@ def random_walks_parallel(
     overwrite_walks=True,
     overwrite_perturbations=True,
     cpu_usage=0.5,
+    verbose = 1
 ):
     """
     Wrapper function to perform random walks.
@@ -492,39 +494,30 @@ def random_walks_parallel(
         for v in attractor_dict[k]:
             list_attr_dict.append({k: [v]})
 
-    # Step 1: Init multiprocessing.Pool()
-    pool = mp.Pool(cpus_use)
+    with mp.Pool(cpus_use) as P:
 
-    # Step 2: `pool.apply` the random walks function
-    results = [
-        pool.apply(
-            random_walks,
-            args=(
-                single_attr,
-                rules,
-                regulators_dict,
-                nodes,
-                save_dir,
-                radius,
-                perturbations,
-                iters,
-                max_steps,
-                stability,
-                reach_or_leave,
-                random_start,
-                on_nodes,
-                off_nodes,
-                basin,
-                overwrite_walks,
-                overwrite_perturbations,
-            ),
+        results = P.map(
+            partial(random_walks,  
+                rules = rules,
+                regulators_dict = regulators_dict,
+                nodes = nodes,
+                save_dir = save_dir,
+                radius = radius,
+                perturbations = perturbations,
+                iters = iters,
+                max_steps = max_steps,
+                stability = stability,
+                reach_or_leave = reach_or_leave,
+                random_start = random_start,
+                on_nodes = on_nodes,
+                off_nodes = off_nodes,
+                basin = basin,
+                overwrite_walks = overwrite_walks,
+                overwrite_perturbations = overwrite_perturbations, 
+                verbose = verbose),
+            list_attr_dict
         )
-        for single_attr in list_attr_dict
-    ]
-
-    # Step 3: Don't forget to close
-    pool.close()
-
+    
 
 def simple_random_walk(stg, edge_weights, start_idx, steps):
     """
