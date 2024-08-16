@@ -1,0 +1,3 @@
+start-state,dist-to-start,attractor
+128,1, 0
+0,0, 0

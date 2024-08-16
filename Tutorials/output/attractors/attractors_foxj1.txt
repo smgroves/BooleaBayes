@@ -1,0 +1,4 @@
+start-state,dist-to-start,attractor
+65407,1, 65535
+65398,1, 65366
+65535,0, 65535

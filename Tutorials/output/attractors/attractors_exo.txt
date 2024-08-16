@@ -1,0 +1,3 @@
+start-state,dist-to-start,attractor
+49151,1, 65535
+32767,1, 65535

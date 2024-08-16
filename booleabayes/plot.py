@@ -1485,7 +1485,7 @@ def draw_grn(G, gene2vertex, rules, regulators_dict, fname, gene2group=None, gen
     :type fname: str
     :param gene2group: Dictionary of the form {node[str]:group[int]} used to group nodes by color, defaults to None
     :type gene2group: dict, optional
-    :param gene2color: Dictionary of the form {node[str]:color[vector<float>]} used to group nodes by color, defaults to None
+    :param gene2color: Dictionary of the form {node[str]:color[vector<float>]} used to group nodes by color (in normalized RGBA format), defaults to None
     :type gene2color: dict, optional
     :param type: network plot type, either "circle" or "", defaults to ""
     :type type: str, optional
@@ -1553,7 +1553,7 @@ def draw_grn(G, gene2vertex, rules, regulators_dict, fname, gene2group=None, gen
     eprops = {"color": edge_colors, "pen_width": 2, "marker_size": 15, "end_marker": edge_markers}
     vprops = {"text": vertex2gene, "shape": "circle", "size": 20, "pen_width": 1, 'fill_color': vertex_colors}
     if type == 'circle':
-        state = gt.minimize_nested_blockmodel_dl(G, B_min = B_min)
+        state = gt.minimize_nested_blockmodel_dl(G)
         state.draw(vprops=vprops, eprops=eprops)  # mplfig=ax[0,1])
     else:
         gt.graph_draw(G, pos=pos, output=fname, vprops=vprops, eprops=eprops, output_size=(1000, 1000))

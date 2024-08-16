@@ -188,7 +188,7 @@ def r2(x, y):
     return stats.pearsonr(x, y)[0] ** 2
 
 
-def split_train_test(data, data_t1, clusters, save_dir, fname=None, random_state=1234):
+def split_train_test(data, data_t1, clusters, save_dir, suffix="", random_state=1234):
     """Split a dataset into testing and training dataset
 
     :param data: Dataset or first timepoint of temporal dataset to be split into training/testing datasets
@@ -199,8 +199,8 @@ def split_train_test(data, data_t1, clusters, save_dir, fname=None, random_state
     :type clusters: Pandas DataFrame
     :param save_dir: File path for saving training and testing sets
     :type save_dir: str
-    :param fname: Suffix to add to file names for saving, defaults to None
-    :type fname: str, optional
+    :param suffix: Suffix to add to file names for saving, defaults to None
+    :type suffix: str, optional
     :return: List of dataframes split into training and testing: `data` (training set, t0), test (testing set, t1), data_t1 (training set, t1), test_t (testing set, t1), clusters_train (cluster IDs of training set), clusters_test (cluster IDs of testing set)
     :rtype: Pandas dataframes
     """
@@ -217,27 +217,27 @@ def split_train_test(data, data_t1, clusters, save_dir, fname=None, random_state
         "train_cellID": [df[i] for i in train_index],
     }
 
-    with open(f"{save_dir}/test_train_indices_{fname}.p", "wb") as f:
+    with open(f"{save_dir}/test_train_indices{suffix}.p", "wb") as f:
         pickle.dump(T, f)
 
     test = data.loc[T["test_cellID"]]
     data = data.loc[T["train_cellID"]]
-    test.to_csv(f"{save_dir}/test_t0_{fname}.csv")
-    data.to_csv(f"{save_dir}/train_t0_{fname}.csv")
+    test.to_csv(f"{save_dir}/test_t0{suffix}.csv")
+    data.to_csv(f"{save_dir}/train_t0{suffix}.csv")
 
     if data_t1 is not None:
         test_t1 = data_t1.loc[T["test_cellID"]]
         data_t1 = data_t1.loc[T["train_cellID"]]
-        test_t1.to_csv(f"{save_dir}/test_t1_{fname}.csv")
-        data_t1.to_csv(f"{save_dir}/train_t1_{fname}.csv")
+        test_t1.to_csv(f"{save_dir}/test_t1{suffix}.csv")
+        data_t1.to_csv(f"{save_dir}/train_t1{suffix}.csv")
     else:
         test_t1 = None
         data_t1 = None
 
     clusters_train = clusters.loc[T["train_cellID"]]
     clusters_test = clusters.loc[T["test_cellID"]]
-    clusters_train.to_csv(f"{save_dir}/clusters_train_{fname}.csv")
-    clusters_test.to_csv(f"{save_dir}/clusters_test_{fname}.csv")
+    clusters_train.to_csv(f"{save_dir}/clusters_train{suffix}.csv")
+    clusters_test.to_csv(f"{save_dir}/clusters_test{suffix}.csv")
 
     return data, test, data_t1, test_t1, clusters_train, clusters_test
 
@@ -910,14 +910,13 @@ def print_graph_info(
     graph,
     vertex_dict,
     nodes,
-    fname,
-    brcd="",
+    suffix = "",
     dir_prefix="",
     plot=True,
     fillcolor="lightcyan",
     gene2color=None,
     layout=None,
-    add_edge_weights=True,
+    add_edge_weights=False,
     ew_df=None,
 ):
     print("==================================")
@@ -1004,7 +1003,7 @@ def print_graph_info(
             state = gt.minimize_nested_blockmodel_dl(graph, B_min=10)
             state.draw(
                 vprops=vprops,
-                output=f"{dir_prefix}/{brcd}/{fname}_simple_circle_network.pdf",
+                output=f"{dir_prefix}/simple_circle_network{suffix}.pdf",
                 output_size=(1000, 1000),
             )  # mplfig=ax[0,1])
         else:
@@ -1015,6 +1014,6 @@ def print_graph_info(
                 vprops=vprops,
                 eprops=eprops,
                 edge_pen_width=edge_weights,
-                output=f"{dir_prefix}/{brcd}/{fname}_simple_network.pdf",
+                output=f"{dir_prefix}/simple_network{suffix}.pdf",
                 output_size=(1000, 1000),
             )

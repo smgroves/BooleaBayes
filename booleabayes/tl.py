@@ -822,87 +822,64 @@ def write_attractor_dict(attractor_dict, nodes, outfile):
             outfile.write("\n")
     outfile.close()
 
-
-### NOT WORKING WITH TEST DATA ****
-# Arguments:
-# phenotypes = list of phenotypes to filter by?**
-# average_states = dictionary of average states **
-# attractor_dict = attractor dictionary **
-# avg_state_idx_dir = path to average_states_index_<phenotype>.txt files
-# attractor_dir = pathe to attractors_<phenotype>.txt
-# save_dir = directory to save output file
-# nodes = nodes of tf network
 def filter_attractors(
-    phenotypes,  # average_states, attractor_dict,
-    avg_state_idx_dir,
     attractor_dir,
-    save_dir,
     nodes,
+    clusters
 ):
-    # TEST
-    average_states = {"Tumor1": [], "Tumor2": []}
-    attractor_dict = {"Tumor1": [], "Tumor2": []}
-    for phen in phenotypes:
-        d = pd.read_csv(
-            f"{avg_state_idx_dir}/average_states_idx_{phen}.txt", sep=",", header=0
-        )
-        average_states[f"{phen}"] = list(np.unique(d["average_state"]))
-        d = pd.read_csv(f"{attractor_dir}/attractors_{phen}.txt", sep=",", header=0)
-        attractor_dict[f"{phen}"] = list(np.unique(d["attractor"]))
-
-        # Below code compares each attractor to average state for each subtype instead of
-        # closest single binarized data point
-        a = attractor_dict.copy()
-        # attractor_dict = a.copy()
-        for p in attractor_dict.keys():
-            print(p)
-            for q in attractor_dict.keys():
-                print("q", q)
-                if p == q:
-                    continue
-                n_same = list(
-                    set(attractor_dict[p]).intersection(set(attractor_dict[q]))
-                )
-                print("n_same:", n_same, len(n_same))
-                if len(n_same) != 0:
-                    for x in n_same:
-                        print("average_states:", average_states)
-                        print("hamm p args:", x, average_states[p], len(nodes))
-                        print("hamm q args:", x, average_states[q], len(nodes))
-                        # Error passing np.unique list [0,1] in average states to idx2binary in hamming_idx function
-                        p_dist = ut.hamming_idx(x, average_states[p], len(nodes))
-                        q_dist = ut.hamming_idx(x, average_states[q], len(nodes))
-                        # Code never gets here
-                        print("p_dist:", p_dist, "q_dist", q_dist)
-                        if p_dist < q_dist:
-                            a[q].remove(x)
-                        elif q_dist < p_dist:
-                            a[p].remove(x)
-                        else:
-                            a[q].remove(x)
-                            a[p].remove(x)
-                            try:
-                                a[f"{q}_{p}"].append(x)
-                            except KeyError:
-                                a[f"{q}_{p}"] = [x]
-    print(a)
+    average_states = {}
+    attractor_dict = {}
+    average_states_df = pd.read_csv(f'{attractor_dir}/average_states.txt', sep=',', header=0, index_col=0)
+    for i,r in average_states_df.iterrows():
+        s = ""
+        cnt = 0
+        for letter in list(r):
+            if cnt > 0:
+                s = s+str(letter)
+            cnt += 1
+        average_states[i] = ut.state2idx(s)
+    for phen in clusters['class'].unique():
+        d = pd.read_csv(f'{attractor_dir}/attractors_{phen}.txt', sep = ',', header = 0)
+        attractor_dict[f'{phen}'] =  list(np.unique(d['attractor']))
+        #     ##### Below code compares each attractor to average state for each subtype instead of closest single binarized data point
+    a = attractor_dict.copy()
+    # attractor_dict = a.copy()
+    for p in attractor_dict.keys():
+        print(p)
+        for q in attractor_dict.keys():
+            if p == q: continue
+            n_same = list(set(attractor_dict[p]).intersection(set(attractor_dict[q])))
+            if len(n_same) != 0:
+                for x in n_same:
+                    p_dist = ut.hamming_idx(x, average_states[p], len(nodes))
+                    q_dist = ut.hamming_idx(x, average_states[q], len(nodes))
+                    if p_dist < q_dist:
+                        a[q].remove(x)
+                    elif q_dist < p_dist:
+                        a[p].remove(x)
+                    else:
+                        a[q].remove(x)
+                        a[p].remove(x)
+                        try:
+                            a[f'{q}_{p}'].append(x)
+                        except KeyError:
+                            a[f'{q}_{p}'] = [x]
     attractor_dict = a
     print(attractor_dict)
-    file = open(f"{save_dir}/attractors_filtered.txt", "w+")
-
+    file = open(f"{attractor_dir}/attractors_filtered.txt", 'w+')
+    # plot attractors
     for j in nodes:
         file.write(f",{j}")
     file.write("\n")
     for k in attractor_dict.keys():
-        print("attractor_dict key:", k)
         att = [ut.idx2binary(x, len(nodes)) for x in attractor_dict[k]]
         for i, a in zip(att, attractor_dict[k]):
             file.write(f"{k}")
             for c in i:
                 file.write(f",{c}")
             file.write("\n")
-
     file.close()
+    return attractor_dict
 
 
 ### ------------ AVG STATES ------------ ###

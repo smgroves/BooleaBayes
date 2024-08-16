@@ -46,7 +46,7 @@ readme = open("README.rst").read()
 
 setup(
     name="booleabayes",
-    version="0.1.14",
+    version="1.0.0",
     description="A suite for network inference from transcriptomics data",
     long_description=readme,
     long_description_content_type="text/x-rst",
@@ -55,7 +55,7 @@ setup(
     url="https://github.com/smgroves/BooleaBayes",
     install_requires=install_requires,
     extras_require={"doc": doc_requires},
-    packages=setuptools.find_packages(exclude = "tests"),
+    packages=setuptools.find_packages(exclude = ["tests", "Tutorials.output"]),
     classifiers=[
         "Programming Language :: Python :: 3",
         "Operating System :: OS Independent",
